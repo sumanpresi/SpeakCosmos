@@ -65,3 +65,6 @@ Progress is saved in localStorage on one browser/device. For moving to another d
 References: [React Force Graph](https://github.com/vasturiano/react-force-graph) (MIT) and [FreeLingo](https://github.com/ArtCC/freelingo) (AGPL-3.0). This project does not contain copied FreeLingo source files.
 
 The original app files (excluding third-party dependencies, if added later) are released under MIT; see `LICENSE`.
+## Credits
+
+The Course tab and the 100-day nodes in the cosmos link to the open-source [Learn-English-In-100-days](https://github.com/subham-cse/Learn-English-In-100-days) course. Only titles and links are used; the notes and quizzes stay in their own repository. `tools/gen-graph.mjs` and `tools/days.json` rebuild `assets/cosmos-graph.json`.

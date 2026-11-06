@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";
 import { forceCenter, forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 
-const [, , basePath, swDir, outPath] = process.argv;
+const [, , basePath, swDir, outPath, daysPath = new URL("./days.json", import.meta.url).pathname] = process.argv;
 
 // ── source data ─────────────────────────────────────────────────────────────────────────────────────────────
 const html = readFileSync(basePath, "utf8");
@@ -44,6 +44,8 @@ for (const g of SW.lessonGroups) hub("lg:" + g.id, g.name, g.blurb, LES_COL);
 hub("h:fw", "Thinking frameworks", "Reusable structures for organising what you say on the spot.", "#f4a6c3");
 hub("h:drill", "Cognitive drills", "Fluency and word-retrieval exercises.", "#6ee7cc");
 hub("h:word", "Confused words", "Pairs that are easy to mix up, with a sentence for each.", "#83c9f4");
+const DAYS = JSON.parse(readFileSync(daysPath, "utf8"));
+hub("h:course", "100-day course", "A structured 100-day plan: basics, grammar, expressions, reading, then speaking and writing. Each day links to the lessons and skills it teaches.", "#e58ab0");
 for (const h of hubs) link(h.id, "core", "ON_CORE");
 
 // ── skills (the app's 35 topics) ────────────────────────────────────────────────────────────────────────────
@@ -171,11 +173,23 @@ for (const p of nodes.filter((n) => n.k === "point" && !["Step", "Upgrade", "Qui
 // drills train the skills they sound like
 for (const d of SW.drills) for (const m of rank(d.name + " " + d.desc)) link("dr:" + d.id, m.id, "TRAINS");
 
+// ── the 100-day course: one node per day, in order, linked to the lessons and skills each day teaches ───────
+const PHASE = ["", "Basics & vocabulary", "Grammar & sentence structure", "Idioms, phrasal verbs & expressions", "Reading & comprehension", "Speaking & writing practice"];
+const BASE = "https://github.com/subham-cse/Learn-English-In-100-days/blob/main/";
+const PREVIEW = "https://htmlpreview.github.io/?" + BASE;
+for (const d of DAYS) {
+  const ph = Math.ceil(d.n / 20), shortT = d.t.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  add({ id: "dy:" + d.n, k: "day", n: d.n, ph, sub: `Day ${d.n} · Phase ${ph}`, l: `Day ${d.n} · ${shortT}`, d: `${d.t}. Phase ${ph}: ${PHASE[ph]}.`, g: "h:course", notes: BASE + d.notes, quiz: PREVIEW + d.quiz, mega: d.mega ? PREVIEW + d.mega : undefined });
+  link("dy:" + d.n, "h:course", "BELONGS_TO");
+  if (d.n > 1) link("dy:" + (d.n - 1), "dy:" + d.n, "NEXT_DAY");
+  for (const to of d.to) link("dy:" + d.n, to, to.startsWith("sc:") ? "PREPARES" : "TEACHES");
+}
+
 // ── layout (the GitaViśva recipe) ───────────────────────────────────────────────────────────────────────────
 const RING_R = 380;
 const REL = {
   BELONGS_TO: { dist: 46, str: 0.55 }, PART_OF: { dist: 13, str: 0.75 }, USES: { dist: 120, str: 0.03 }, COVERS: { dist: 130, str: 0.025 },
-  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, NEXT_SKILL: { dist: 70, str: 0 }, ON_CORE: { dist: 380, str: 0 },
+  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, TEACHES: { dist: 150, str: 0.02 }, PREPARES: { dist: 150, str: 0.02 }, NEXT_DAY: { dist: 34, str: 0.04 }, NEXT_SKILL: { dist: 70, str: 0 }, ON_CORE: { dist: 380, str: 0 },
 };
 const ringOrder = ["g:speaking", "g:work", "g:everyday", "sg:present", ...hubs.map((h) => h.id)].filter((v, i, a) => a.indexOf(v) === i);
 hubs.sort((x, y) => ringOrder.indexOf(x.id) - ringOrder.indexOf(y.id));
