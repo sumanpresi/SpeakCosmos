@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";
 import { forceCenter, forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 
-const [, , basePath, swDir, outPath, booksPath = new URL("./books.json", import.meta.url).pathname] = process.argv;
+const [, , basePath, swDir, outPath] = process.argv;
 
 // ── source data ─────────────────────────────────────────────────────────────────────────────────────────────
 const html = readFileSync(basePath, "utf8");
@@ -44,8 +44,6 @@ for (const g of SW.lessonGroups) hub("lg:" + g.id, g.name, g.blurb, LES_COL);
 hub("h:fw", "Thinking frameworks", "Reusable structures for organising what you say on the spot.", "#f4a6c3");
 hub("h:drill", "Cognitive drills", "Fluency and word-retrieval exercises.", "#6ee7cc");
 hub("h:word", "Confused words", "Pairs that are easy to mix up, with a sentence for each.", "#83c9f4");
-const BOOKS = JSON.parse(readFileSync(booksPath, "utf8"));
-hub("h:books", "Grammar library", `${BOOKS.length} grammar, usage and speaking books, each linked to the lessons and skills it explains or drills.`, "#e58ab0");
 for (const h of hubs) link(h.id, "core", "ON_CORE");
 
 // ── skills (the app's 35 topics) ────────────────────────────────────────────────────────────────────────────
@@ -173,32 +171,11 @@ for (const p of nodes.filter((n) => n.k === "point" && !["Step", "Upgrade", "Qui
 // drills train the skills they sound like
 for (const d of SW.drills) for (const m of rank(d.name + " " + d.desc)) link("dr:" + d.id, m.id, "TRAINS");
 
-// ── books: the English-Grammar-Books library, linked to the lessons and skills they explain or drill ─────────
-const BT = {
-  ref: ["Reference", "A reference grammar. Look the rule up here, then practise it in the lesson."],
-  work: ["Workbook", "Exercises with answers. Use it after the lesson to make the rule automatic."],
-  test: ["Practice tests", "Short tests that show which rules you still get wrong."],
-  fix: ["Common mistakes", "Typical learner errors, each with a correction and practice."],
-  speak: ["Speaking & fluency", "Natural spoken English: expressions, rhythm and everyday talk."],
-  vocab: ["Vocabulary", "Word lists and exercises that widen the words you can use."],
-  ling: ["Linguistics", "How English grammar works, explained in depth. Best for advanced learners."],
-  teach: ["For teachers", "Grammar explained for people who teach it, with clear terminology."],
-  exam: ["Exam prep", "Grammar practice shaped for IELTS and Cambridge-style exams."],
-  usage: ["Usage guide", "Which word or spelling to choose, and why."],
-};
-const BASE = "https://github.com/manjunath5496/English-Grammar-Books/blob/master/";
-for (const b of BOOKS) {
-  const [lab, blurb] = BT[b.type];
-  add({ id: "bk:" + b.n, k: "book", sub: lab, l: b.t, d: `${blurb} Level: ${b.lvl}.`, lvl: b.lvl, bt: b.type, g: "h:books", url: `${BASE}eng%28${b.n}%29.pdf` });
-  link("bk:" + b.n, "h:books", "BELONGS_TO");
-  for (const to of b.to) link("bk:" + b.n, to, ["work", "test", "exam", "fix"].includes(b.type) ? "DRILLS" : "EXPLAINS");
-}
-
 // ── layout (the GitaViśva recipe) ───────────────────────────────────────────────────────────────────────────
 const RING_R = 380;
 const REL = {
   BELONGS_TO: { dist: 46, str: 0.55 }, PART_OF: { dist: 13, str: 0.75 }, USES: { dist: 120, str: 0.03 }, COVERS: { dist: 130, str: 0.025 },
-  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, EXPLAINS: { dist: 150, str: 0.02 }, DRILLS: { dist: 150, str: 0.02 }, NEXT_SKILL: { dist: 70, str: 0 }, ON_CORE: { dist: 380, str: 0 },
+  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, NEXT_SKILL: { dist: 70, str: 0 }, ON_CORE: { dist: 380, str: 0 },
 };
 const ringOrder = ["g:speaking", "g:work", "g:everyday", "sg:present", ...hubs.map((h) => h.id)].filter((v, i, a) => a.indexOf(v) === i);
 hubs.sort((x, y) => ringOrder.indexOf(x.id) - ringOrder.indexOf(y.id));
