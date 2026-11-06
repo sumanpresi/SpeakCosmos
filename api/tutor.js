@@ -11,7 +11,18 @@ function equal(a,b){
   return x.length===y.length&&timingSafeEqual(x,y);
 }
 function cleanModel(v){return String(v||'').trim().replace(/[^a-zA-Z0-9._:/-]/g,'').slice(0,120)}
+function askPayload(body){
+  const q=String(body?.question||'').slice(0,500);
+  const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,14).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,300)}`).join('\n');
+  return {
+    mode:'ask',
+    answer:q,
+    system:'You are the guide inside SpeakCosmos, a spoken-English knowledge graph for an Indian learner whose first language is Bengali. Answer the question using ONLY the numbered graph notes provided; if they do not cover it, say so briefly. Be concise (under 120 words), practical, use simple English, and give one short example sentence when helpful. Cite the notes you used as [1], [2]. Return JSON only: {"answer":"...","bn":"one short line of Bengali guidance"}',
+    user:`Question: ${q}\n\nGraph notes:\n${ctx}`
+  };
+}
 function promptPayload(body){
+  if(body&&body.mode==='ask')return askPayload(body);
   const {scenario,prompt,lesson,answer,modelAnswer}=body||{};
   const lines=[scenario,prompt,lesson,modelAnswer].map(v=>String(v||'').slice(0,800));
   return {
@@ -20,7 +31,11 @@ function promptPayload(body){
     user:`Situation: ${lines[0]}\nCoach question: ${lines[1]}\nTask: ${lines[2]}\nReference response: ${lines[3]}\nLearner answer: ${answer}`
   };
 }
-function safeResult(obj){
+function safeResult(obj,mode){
+  if(mode==='ask'){
+    if(!obj||!obj.answer)throw new Error('Invalid AI answer');
+    return {answer:String(obj.answer).slice(0,1400),bn:String(obj.bn||'').slice(0,400)};
+  }
   if(!obj||!obj.good||!obj.next)throw new Error('Invalid AI feedback');
   return {
     good:String(obj.good).slice(0,600),
@@ -33,7 +48,7 @@ function parseJsonText(raw){
   const text=String(raw||'').trim().replace(/^\`\`\`(?:json)?/i,'').replace(/\`\`\`$/,'').trim();
   return JSON.parse(text);
 }
-async function callOpenAI({key,model,system,user,signal,base='https://api.openai.com/v1'}){
+async function callOpenAI({key,model,system,user,signal,mode,base='https://api.openai.com/v1'}){
   const r=await fetch(`${base}/chat/completions`,{
     method:'POST',
     headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
@@ -41,16 +56,16 @@ async function callOpenAI({key,model,system,user,signal,base='https://api.openai
     body:JSON.stringify({
       model,
       temperature:0.35,
-      max_tokens:320,
+      max_tokens:mode==='ask'?600:320,
       response_format:{type:'json_object'},
       messages:[{role:'system',content:system},{role:'user',content:user}]
     })
   });
   if(!r.ok)throw new Error(`OpenAI provider error ${r.status}`);
   const j=await r.json();
-  return safeResult(parseJsonText(j.choices?.[0]?.message?.content||'{}'));
+  return safeResult(parseJsonText(j.choices?.[0]?.message?.content||'{}'),mode);
 }
-async function callGemini({key,model,system,user,signal}){
+async function callGemini({key,model,system,user,signal,mode}){
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const r=await fetch(url,{
     method:'POST',
@@ -59,13 +74,13 @@ async function callGemini({key,model,system,user,signal}){
     body:JSON.stringify({
       systemInstruction:{parts:[{text:system}]},
       contents:[{role:'user',parts:[{text:user}]}],
-      generationConfig:{temperature:0.35,maxOutputTokens:320,responseMimeType:'application/json'}
+      generationConfig:{temperature:0.35,maxOutputTokens:mode==='ask'?600:320,responseMimeType:'application/json'}
     })
   });
   if(!r.ok)throw new Error(`Gemini provider error ${r.status}`);
   const j=await r.json();
   const raw=j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'{}';
-  return safeResult(parseJsonText(raw));
+  return safeResult(parseJsonText(raw),mode);
 }
 
 export default async function handler(req,res){
@@ -100,8 +115,8 @@ export default async function handler(req,res){
   const timeout=setTimeout(()=>controller.abort(),18000);
   try{
     const result=provider==='gemini'
-      ? await callGemini({key,model,system:p.system,user:p.user,signal:controller.signal})
-      : await callOpenAI({key,model,system:p.system,user:p.user,signal:controller.signal,base:provider==='server'?base:'https://api.openai.com/v1'});
+      ? await callGemini({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode})
+      : await callOpenAI({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,base:provider==='server'?base:'https://api.openai.com/v1'});
     return res.status(200).json(result);
   }catch(err){
     return res.status(502).json({error:String(err?.message||'AI could not respond').slice(0,180)});
