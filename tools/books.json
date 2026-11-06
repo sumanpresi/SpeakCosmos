@@ -1,0 +1,645 @@
+[
+{
+"n": 1,
+"t": "English for Everyone English Grammar Guide: A comprehensive visual reference",
+"type": "ref",
+"lvl": "A1–B2",
+"to": [
+"ls:parts-of-speech",
+"ls:verb-tenses",
+"ls:sentence-structure",
+"ls:articles"
+]
+},
+{
+"n": 2,
+"t": "Fundamentals of English Grammar Workbook",
+"type": "work",
+"lvl": "A2–B1",
+"to": [
+"ls:parts-of-speech",
+"ls:verbs",
+"ls:nouns",
+"ls:sva"
+]
+},
+{
+"n": 3,
+"t": "English Grammar for Today: A New Introduction",
+"type": "ling",
+"lvl": "B2–C1",
+"to": [
+"ls:syntax",
+"ls:clauses",
+"ls:sentence-patterns"
+]
+},
+{
+"n": 4,
+"t": "A Communicative Grammar of English",
+"type": "ref",
+"lvl": "B1–C1",
+"to": [
+"ls:verb-tenses",
+"ls:modals",
+"ls:conditionals",
+"t:polite-phrases"
+]
+},
+{
+"n": 5,
+"t": "English Grammar For Dummies",
+"type": "ref",
+"lvl": "A2–B2",
+"to": [
+"ls:parts-of-speech",
+"ls:common-mistakes",
+"ls:comma",
+"ls:sva"
+]
+},
+{
+"n": 6,
+"t": "Macmillan English Grammar In Context",
+"type": "ref",
+"lvl": "B1–B2",
+"to": [
+"ls:verb-tenses",
+"ls:modals",
+"ls:prepositions",
+"ls:articles"
+]
+},
+{
+"n": 7,
+"t": "English Grammar Workbook For Dummies",
+"type": "work",
+"lvl": "A2–B2",
+"to": [
+"ls:verbs",
+"ls:pronouns",
+"lg:punctuation",
+"ls:sva"
+]
+},
+{
+"n": 8,
+"t": "Schaum's Outline of English Grammar",
+"type": "ref",
+"lvl": "B1–C1",
+"to": [
+"ls:parts-of-speech",
+"ls:clauses",
+"ls:sva",
+"ls:diagramming"
+]
+},
+{
+"n": 9,
+"t": "Basic English Grammar: For English Language Learners",
+"type": "ref",
+"lvl": "A1–A2",
+"to": [
+"ls:parts-of-speech",
+"ls:nouns",
+"ls:verbs",
+"t:sentence-order"
+]
+},
+{
+"n": 10,
+"t": "853 English Grammar Tests",
+"type": "test",
+"lvl": "B1–C1",
+"to": [
+"ls:common-mistakes",
+"ls:verb-tenses",
+"ls:prepositions",
+"ls:articles"
+]
+},
+{
+"n": 11,
+"t": "A Student's Introduction to English Grammar",
+"type": "ling",
+"lvl": "C1",
+"to": [
+"ls:syntax",
+"ls:clauses",
+"ls:subjects"
+]
+},
+{
+"n": 12,
+"t": "Practice Makes Perfect Intermediate English Grammar for ESL Learners",
+"type": "work",
+"lvl": "B1–B2",
+"to": [
+"ls:verb-tenses",
+"ls:prepositions",
+"ls:conditionals",
+"ls:modals"
+]
+},
+{
+"n": 13,
+"t": "The Grammar of the English Verb Phrase, Volume 1: The Grammar of the English Tense System",
+"type": "ling",
+"lvl": "C1–C2",
+"to": [
+"ls:verb-tenses",
+"t:tense-past",
+"t:tense-future"
+]
+},
+{
+"n": 14,
+"t": "The Grammar of English Grammars",
+"type": "ling",
+"lvl": "C2",
+"to": [
+"ls:syntax",
+"ls:key-concepts"
+]
+},
+{
+"n": 15,
+"t": "Collins Cobuild English Grammar",
+"type": "ref",
+"lvl": "B1–C1",
+"to": [
+"ls:verb-tenses",
+"ls:modals",
+"ls:prepositions",
+"t:natural-phrases"
+]
+},
+{
+"n": 16,
+"t": "Just Enough English Grammar Illustrated",
+"type": "ref",
+"lvl": "A2–B1",
+"to": [
+"ls:parts-of-speech",
+"ls:sentence-types",
+"ls:plurals"
+]
+},
+{
+"n": 17,
+"t": "The Farlex Grammar Book: Complete English Grammar Rules",
+"type": "ref",
+"lvl": "A2–C1",
+"to": [
+"ls:comma",
+"ls:apostrophe",
+"ls:sva",
+"ls:capitalization"
+]
+},
+{
+"n": 18,
+"t": "Grammar Rules!",
+"type": "ref",
+"lvl": "A2–B1",
+"to": [
+"ls:parts-of-speech",
+"ls:capitalization",
+"lg:punctuation"
+]
+},
+{
+"n": 19,
+"t": "Common mistakes in English with exercises",
+"type": "fix",
+"lvl": "B1–B2",
+"to": [
+"ls:common-mistakes",
+"h:word",
+"ls:prepositions"
+]
+},
+{
+"n": 20,
+"t": "The Oxford Dictionary of English Grammar",
+"type": "ref",
+"lvl": "C1",
+"to": [
+"ls:key-concepts",
+"ls:syntax",
+"ls:parts-of-speech"
+]
+},
+{
+"n": 21,
+"t": "Basic English Syntax with Exercises",
+"type": "work",
+"lvl": "B1–B2",
+"to": [
+"ls:syntax",
+"ls:sentence-patterns",
+"ls:clauses",
+"ls:diagramming"
+]
+},
+{
+"n": 22,
+"t": "Free English Grammar",
+"type": "ref",
+"lvl": "A1–B1",
+"to": [
+"ls:parts-of-speech",
+"ls:verbs",
+"t:sentence-order"
+]
+},
+{
+"n": 23,
+"t": "English Grammar Reference Book: Grammar and Error Correction Guide and Phrasal Verb Book",
+"type": "ref",
+"lvl": "B1–C1",
+"to": [
+"ls:common-mistakes",
+"t:better-verbs",
+"t:natural-phrases"
+]
+},
+{
+"n": 24,
+"t": "Advanced English C.A.E. Grammar Practice",
+"type": "exam",
+"lvl": "C1",
+"to": [
+"ls:conditionals",
+"ls:modals",
+"ls:clauses",
+"t:link-ideas"
+]
+},
+{
+"n": 25,
+"t": "An English Grammar, for the Use of High School, Academy, and College Classes",
+"type": "ref",
+"lvl": "B2–C1",
+"to": [
+"ls:parts-of-speech",
+"ls:clauses",
+"ls:diagramming"
+]
+},
+{
+"n": 26,
+"t": "Better English Grammar",
+"type": "ref",
+"lvl": "B1",
+"to": [
+"ls:sva",
+"ls:common-mistakes",
+"ls:sentence-structure"
+]
+},
+{
+"n": 27,
+"t": "English Grammar (Tests)",
+"type": "test",
+"lvl": "B1–B2",
+"to": [
+"ls:verb-tenses",
+"ls:prepositions",
+"ls:articles"
+]
+},
+{
+"n": 28,
+"t": "Effortless English: Learn To Speak English Like A Native",
+"type": "speak",
+"lvl": "A2–B2",
+"to": [
+"t:speak-up",
+"t:shadowing",
+"t:natural-phrases",
+"t:listen-for-meaning"
+]
+},
+{
+"n": 29,
+"t": "Fluent English",
+"type": "speak",
+"lvl": "B1–C1",
+"to": [
+"t:speak-up",
+"t:natural-phrases",
+"t:pause-and-speak",
+"g:confidence"
+]
+},
+{
+"n": 30,
+"t": "Good Word Guide",
+"type": "usage",
+"lvl": "C1",
+"to": [
+"h:word",
+"ls:common-mistakes",
+"t:word-families"
+]
+},
+{
+"n": 31,
+"t": "Grammar by Diagram",
+"type": "ling",
+"lvl": "B1–C1",
+"to": [
+"ls:diagramming",
+"ls:sentence-patterns",
+"ls:clauses"
+]
+},
+{
+"n": 32,
+"t": "Grammar of English: Explanation, Rule and Drills",
+"type": "work",
+"lvl": "B1–B2",
+"to": [
+"ls:verb-tenses",
+"ls:modals",
+"ls:sva"
+]
+},
+{
+"n": 33,
+"t": "Grammar: Learn Grammar Rules To Rule The English Language",
+"type": "ref",
+"lvl": "A2–B2",
+"to": [
+"ls:parts-of-speech",
+"ls:verb-tenses",
+"ls:sentence-types"
+]
+},
+{
+"n": 34,
+"t": "Oxford Practice Grammar with answers",
+"type": "work",
+"lvl": "B1–C1",
+"to": [
+"ls:verb-tenses",
+"ls:conditionals",
+"ls:articles",
+"ls:prepositions"
+]
+},
+{
+"n": 35,
+"t": "The Teacher's Grammar Book",
+"type": "teach",
+"lvl": "C1",
+"to": [
+"ls:key-concepts",
+"ls:clauses",
+"ls:syntax"
+]
+},
+{
+"n": 36,
+"t": "A Practical English Grammar",
+"type": "ref",
+"lvl": "A2–C1",
+"to": [
+"ls:verb-tenses",
+"ls:modals",
+"ls:articles",
+"ls:prepositions"
+]
+},
+{
+"n": 37,
+"t": "Oxford Modern English Grammar",
+"type": "ref",
+"lvl": "C1",
+"to": [
+"ls:syntax",
+"ls:verbs",
+"ls:clauses"
+]
+},
+{
+"n": 38,
+"t": "British or American English?",
+"type": "usage",
+"lvl": "B2",
+"to": [
+"h:word",
+"ls:spell-check"
+]
+},
+{
+"n": 40,
+"t": "Grammar and Meaning: A Semantic Approach to English Grammar",
+"type": "ling",
+"lvl": "C1",
+"to": [
+"ls:modals",
+"ls:verb-tenses",
+"ls:key-concepts"
+]
+},
+{
+"n": 41,
+"t": "Grammar For IELTS",
+"type": "exam",
+"lvl": "B1–C1",
+"to": [
+"ls:verb-tenses",
+"ls:conditionals",
+"ls:sentence-types",
+"t:link-ideas"
+]
+},
+{
+"n": 42,
+"t": "Jokes: Have a Laugh and Improve Your English",
+"type": "speak",
+"lvl": "A2–B2",
+"to": [
+"t:small-talk",
+"t:natural-phrases"
+]
+},
+{
+"n": 43,
+"t": "Check Your English Vocabulary for IELTS",
+"type": "vocab",
+"lvl": "B1–C1",
+"to": [
+"g:vocabulary",
+"t:word-families",
+"t:daily-words"
+]
+},
+{
+"n": 44,
+"t": "Introducing English Grammar",
+"type": "ling",
+"lvl": "B2",
+"to": [
+"ls:syntax",
+"ls:clauses",
+"ls:parts-of-speech"
+]
+},
+{
+"n": 45,
+"t": "English Grammar Demystified: A Self Teaching Guide",
+"type": "ref",
+"lvl": "A2–B2",
+"to": [
+"ls:parts-of-speech",
+"ls:verbs",
+"ls:sva",
+"ls:comma"
+]
+},
+{
+"n": 46,
+"t": "Grammar for Teachers: A Guide to American English for Native and Non-Native Speakers",
+"type": "teach",
+"lvl": "B2–C1",
+"to": [
+"ls:key-concepts",
+"ls:verb-tenses",
+"ls:parts-of-speech"
+]
+},
+{
+"n": 47,
+"t": "Grammar Scan: Diagnostic tests for Practical English Usage",
+"type": "test",
+"lvl": "B2–C1",
+"to": [
+"ls:common-mistakes",
+"ls:modals"
+]
+},
+{
+"n": 48,
+"t": "Wordsearches: Widen Your Vocabulary in English",
+"type": "vocab",
+"lvl": "A2–B2",
+"to": [
+"g:vocabulary",
+"t:daily-words"
+]
+},
+{
+"n": 49,
+"t": "Teaching Technical English Writing",
+"type": "teach",
+"lvl": "C1",
+"to": [
+"g:work",
+"ls:sentence-structure",
+"t:present-update"
+]
+},
+{
+"n": 50,
+"t": "The Grammar and Lexis of Conversational Informal English in Advanced Textbooks",
+"type": "ling",
+"lvl": "C1",
+"to": [
+"t:natural-phrases",
+"t:small-talk",
+"g:everyday"
+]
+},
+{
+"n": 51,
+"t": "The Grammar of English Ideas",
+"type": "ling",
+"lvl": "C1",
+"to": [
+"ls:key-concepts",
+"ls:sentence-structure"
+]
+},
+{
+"n": 52,
+"t": "English Grammar Drills",
+"type": "work",
+"lvl": "A2–B1",
+"to": [
+"ls:verbs",
+"ls:prepositions",
+"ls:sva",
+"ls:plurals"
+]
+},
+{
+"n": 53,
+"t": "A Glossary of English Grammar",
+"type": "ref",
+"lvl": "All levels",
+"to": [
+"ls:key-concepts",
+"ls:parts-of-speech"
+]
+},
+{
+"n": 54,
+"t": "Grammar for Everyone: Practical tools for learning and teaching grammar",
+"type": "teach",
+"lvl": "B1–C1",
+"to": [
+"ls:parts-of-speech",
+"ls:clauses",
+"ls:sentence-types"
+]
+},
+{
+"n": 55,
+"t": "The Grammar Cracker: Unlocking English Grammar",
+"type": "ref",
+"lvl": "B1–B2",
+"to": [
+"ls:parts-of-speech",
+"ls:verb-tenses",
+"ls:sentence-structure"
+]
+},
+{
+"n": 56,
+"t": "501 grammar and writing questions",
+"type": "test",
+"lvl": "B1–C1",
+"to": [
+"ls:common-mistakes",
+"ls:comma",
+"ls:sva",
+"ls:verb-tenses"
+]
+},
+{
+"n": 57,
+"t": "English: Speak Like a Native in 1 Lesson for Busy People",
+"type": "speak",
+"lvl": "A2–B1",
+"to": [
+"t:natural-phrases",
+"t:speak-up",
+"t:small-talk"
+]
+},
+{
+"n": 58,
+"t": "Improve Your English: English in Everyday Life",
+"type": "speak",
+"lvl": "A2–B1",
+"to": [
+"g:everyday",
+"t:small-talk",
+"t:daily-words",
+"t:travel-chat"
+]
+}
+]

@@ -396,10 +396,10 @@ render();
   const asset=(tag,attrs)=>new Promise((ok,no)=>{const el=document.createElement(tag);Object.assign(el,attrs);el.onload=ok;el.onerror=no;document.head.appendChild(el)});
   let bundle=null;
   const loadBundle=()=>bundle||(bundle=Promise.all([
-    asset('link',{rel:'stylesheet',href:'assets/cosmos3d.css?v=mw56fwgf'}),
+    asset('link',{rel:'stylesheet',href:'assets/cosmos3d.css?v=mw56tg4s'}),
     asset('link',{rel:'stylesheet',href:'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap'}).catch(()=>{}),
-    asset('script',{src:'assets/cosmos3d.js?v=mw56fwgf'}),
-    fetch('assets/cosmos-graph.json?v=mw56fwgf').then(r=>{if(!r.ok)throw new Error('graph');return r.json()}).then(d=>{window.__scGraph=d})
+    asset('script',{src:'assets/cosmos3d.js?v=mw56tg4s'}),
+    fetch('assets/cosmos-graph.json?v=mw56tg4s').then(r=>{if(!r.ok)throw new Error('graph');return r.json()}).then(d=>{window.__scGraph=d})
   ]));
   function teardown(){booting=null;if(inst){try{inst.destroy()}catch(e){}inst=null}document.getElementById('gc')?.remove()}
   const callbacks={
