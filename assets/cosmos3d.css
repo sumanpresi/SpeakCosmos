@@ -303,3 +303,9 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
   .lin-stage{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:16px 12px 80px;transform:none !important}
   .lcard,.lfocus{cursor:pointer;transform:none !important}.lin-zoom{display:none}.gc.lin.has-ins .lin-stage{padding-right:12px}
 }
+/* the host page styles bare <p> in a pale tint; pin readable colours inside the cosmos */
+.gc p{color:var(--text2)}
+.gc .gcdemo p,.gc .am p,.gc .gclead.big{color:var(--text)}
+.gc .gcdemo p.bad{color:#c2410c}.gc[data-theme=dark] .gcdemo p.bad{color:#f0916a}
+.gc .gcdemo p.good{color:#0f7a55}.gc[data-theme=dark] .gcdemo p.good{color:#46c79b}
+.gc .gcdemo .lab,.gc .conn .lab{color:var(--text3)}
