@@ -1,0 +1,11 @@
+{
+  "name":"SpeakCosmos - Spoken English Learning",
+  "short_name":"SpeakCosmos",
+  "description":"Interactive spoken English learning with Bengali guidance and voice practice.",
+  "start_url":"./?view=cosmos",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#0b1328",
+  "theme_color":"#0b1328",
+  "icons":[{"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
