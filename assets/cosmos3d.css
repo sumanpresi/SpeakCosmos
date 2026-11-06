@@ -286,3 +286,20 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:899px){.csteps{grid-template-columns:1fr 1fr}.ctiles{grid-template-columns:repeat(5,1fr)}}
 @media (max-width:560px){.csteps{grid-template-columns:1fr}.crs-body{padding:18px 12px 80px}}
 .cskill{color:var(--text3)}
+
+/* lineage canvas: drag to pan, wheel to zoom, drag cards */
+.lin-body{display:block !important;overflow:hidden !important;cursor:grab;touch-action:none;padding:0 !important;user-select:none}
+.lin-body.panning,.lin-body .dragging{cursor:grabbing}
+.lin-stage{position:relative;display:grid;grid-template-columns:minmax(0,290px) minmax(50px,1fr) minmax(270px,350px) minmax(50px,1fr) minmax(0,290px);align-items:center;align-content:start;padding:28px 32px 60px;min-height:100%;transform-origin:0 0;will-change:transform}
+.gc.lin.has-ins .lin-stage{padding-right:384px}
+.lcard,.lfocus{cursor:grab}.lcard.dragging,.lfocus.dragging{cursor:grabbing;z-index:6;box-shadow:0 12px 32px rgba(60,40,10,.22);transition:none}
+.lcard{transition:border-color .12s}
+.lin-zoom{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;padding:4px;z-index:5;cursor:default}
+.lin-zoom button{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;color:var(--text2);font-size:18px;line-height:1}
+.lin-zoom button:hover{background:var(--pill);color:var(--text)}
+.gc.lin.has-ins .lin-zoom{right:372px}
+@media (max-width:899px){
+  .lin-body{overflow:auto !important;touch-action:auto;cursor:default;padding:0 !important}
+  .lin-stage{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:16px 12px 80px;transform:none !important}
+  .lcard,.lfocus{cursor:pointer;transform:none !important}.lin-zoom{display:none}.gc.lin.has-ins .lin-stage{padding-right:12px}
+}
