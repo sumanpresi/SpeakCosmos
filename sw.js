@@ -1,4 +1,4 @@
-const CACHE='speakcosmos-v15';
+const CACHE='speakcosmos-v16';
 const APP_SHELL=['./','./index.html','./assets/icon.svg','./manifest.webmanifest','./assets/cosmos3d.js','./assets/cosmos3d.css','./assets/cosmos-graph.json'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

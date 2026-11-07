@@ -136,6 +136,29 @@ export const PH_NODES = [
   ["jnana", "idea", "Knowledge (Jnana)", "ph:common", "Liberation comes through knowledge, though some add devotion or action.", "Common thread"],
   ["pramana", "idea", "Pramana", "ph:common", "The valid source of knowledge: every claim must name its evidence.", "Common thread"],
   ["resurrection", "idea", "Rebirth outside India", "ph:common", "Plato, Socrates and Giordano Bruno spoke of it; Ian Stevenson studied claims of past lives for 40 years. Abrahamic faiths mostly reject it, though Sufis and the Jewish 'Gilgul' touch it.", "Comparison"],
+
+  // ── added from the Episode 1 transcript: branches, perception, mysticism, religion and spirituality ──
+  ["axiology", "idea", "Axiology (values)", "ph:found", "The branch about values. It has two parts: ethics and aesthetics.", "Branch"],
+  ["ethics", "idea", "Ethics", "ph:found", "What is moral and what is not; whether moral rules should bend over time (is lying to save someone a sin?); what the purpose of life is; and what is good in itself, not merely as a means.", "Branch"],
+  ["aesthetics", "idea", "Aesthetics", "ph:found", "The study of beauty. Is beauty in the eye of the beholder (subjectivism), in the thing itself (objectivism), or shaped by culture? The speaker adds that even the beholder's eye is largely made by culture.", "Branch"],
+  ["psychphil", "idea", "Consciousness: who am I?", "ph:found", "The third question of metaphysics: what are mind, intelligence and consciousness, and is there a soul beyond the body? Psychology began as part of philosophy.", "Question"],
+  ["atomism", "idea", "Atomism", "ph:found", "The old claim that the world is made of atoms, made in India by Nyaya and in Greece by Leucippus and Democritus, long before science. Their atom differs from the one science later proved.", "Idea"],
+  ["descartes", "thinker", "Descartes", "ph:found", "17th-century philosopher: 'I think, therefore I am'. The body does not think, so something else does, and that is the soul.", "17th century"],
+  ["ai", "idea", "Can a computer think?", "ph:found", "Computers reason, remember and now write stories without any soul, which puts pressure on the idea that thinking needs a soul and gives the Charvaka view a new hearing.", "Question"],
+  ["agnosticism", "idea", "Agnosticism", "ph:found", "Kant's view: we cannot know about God or the soul. So believe if you wish, and do not trouble others for believing or not.", "View"],
+  ["illusion", "idea", "Illusion and hallucination", "ph:found", "Seeing is not proof: the light, the senses or the mind's categories may each distort what we perceive (a fat dog taken for a small cow). Strong emotion or chemicals cause hallucinations.", "Epistemology"],
+  ["causation", "idea", "The law of causation", "ph:found", "Science assumes every event has a cause. Nyaya and Buddhist thinkers examined this; Hume called it an inductive habit, like concluding all pigeons are black after seeing a hundred.", "Epistemology"],
+  ["hume", "thinker", "David Hume", "ph:found", "Western philosopher who questioned the law of cause and effect as only an inductive argument.", "Western thinker"],
+  ["whyindia", "idea", "Why India and Greece", "ph:found", "Philosophy and science grew fastest where meditation, open discussion and freedom to think existed, even if not for everyone. The speaker places Indian philosophy at about 4,000 years and the Greek tradition from about 600 BC.", "History"],
+  ["ignorance2", "idea", "Enlightened ignorance", "ph:found", "The speaker's own conclusion after studying philosophy: you learn that nobody knows the answers, and that you know as much as anyone does. A book distils decades of someone's thought into a few days.", "Idea"],
+  ["philof", "idea", "Philosophy of X", "ph:found", "Philosophy is applied to every field: of history, science, religion, politics. Each asks the deepest questions about how that field works.", "Idea"],
+  ["mahavakya", "idea", "Mahavakyas", "ph:astika", "Upanishadic statements such as Aham Brahmasmi, Tat tvam asi and Ayam Atma Brahma: the self (Atman) is Brahman.", "Upanishadic idea"],
+  ["enlight", "idea", "Enlightenment (self-knowledge)", "ph:buddha", "Knowing one's original nature. In Indian philosophy it is knowledge of the soul or of what I am and am not. Mahavira, the Buddha, Shankara and Nanak are cited as examples.", "Idea"],
+  ["mysticism", "idea", "Mysticism and the limit of language", "ph:buddha", "Ordinary words come from ordinary shared experience, so a mystical experience has none. 'Mysticism' comes from muo, to be silent. Kabir's dumb man tasting jaggery and Rahim's verse make the same point.", "Idea"],
+  ["dream", "idea", "Dream and Metaverse argument", "ph:medieval", "In a dream we do not know it is a dream until we wake. Nagarjuna, the Buddhist brothers Asanga and Vasubandhu, and Shankara asked whether this practical world is a dream too. The speaker says it is a logical possibility, unproven, so we live as if life is real.", "Argument"],
+  ["asanga", "thinker", "Asanga and Vasubandhu", "ph:medieval", "Buddhist philosopher brothers, grouped with Nagarjuna and Shankara for their similar views on the dream-like practical world.", "Buddhist"],
+  ["religion", "idea", "Religion", "ph:common", "For the common person, easy answers to hard questions and an organisation of beliefs. It offers peace, such as the soul being immortal so death only changes clothes.", "Concept"],
+  ["spirituality", "idea", "Spirituality", "ph:common", "From adhi + atma: connecting with something greater than oneself, whether God, Nirvana, Kaivalya, knowledge, or a feeling of unity with the whole world (extrovert mysticism). One can be spiritual without religion.", "Concept"],
 ];
 
 // [from, to, relation]
@@ -186,4 +209,11 @@ export const PH_EDGES = [
   ["karma", "karmatypes", "EXPLAINS"], ["karma", "soul", "INFLUENCES"], ["karma", "rebirth", "INFLUENCES"], ["rebirth", "moksha", "CONTRASTS"], ["suffering", "moksha", "INFLUENCES"], ["avidya", "suffering", "INFLUENCES"],
   ["jnana", "avidya", "CONTRASTS"], ["jnana", "moksha", "INFLUENCES"], ["pramana", "jnana", "EXPLAINS"], ["resurrection", "rebirth", "CONTRASTS"], ["moksha", "bhakti", "CONTRASTS"],
   ["vaishnava", "gandhi", "INFLUENCES"], ["women", "era1", "PART_OF"], ["era5", "iqbal", "HOLDS"], ["freewill", "karma", "INFLUENCES"],
+  ["axiology", "philosophy", "PART_OF"], ["ethics", "axiology", "PART_OF"], ["aesthetics", "axiology", "PART_OF"], ["psychphil", "metaphysics", "PART_OF"], ["atomism", "cosmology", "EXPLAINS"], ["nyaya", "atomism", "HOLDS"],
+  ["descartes", "soul", "EXPLAINS"], ["ai", "soul", "CRITIQUES"], ["ai", "dehatmavada", "INFLUENCES"], ["kant", "agnosticism", "HOLDS"], ["agnosticism", "metaphysics", "CRITIQUES"], ["agnosticism", "theology", "CONTRASTS"],
+  ["illusion", "epistemology", "PART_OF"], ["causation", "epistemology", "PART_OF"], ["hume", "causation", "CRITIQUES"], ["nyaya", "causation", "EXPLAINS"], ["whyindia", "thales", "EXPLAINS"], ["whyindia", "greeks", "EXPLAINS"],
+  ["ignorance2", "philosophy", "EXPLAINS"], ["philof", "philosophy", "PART_OF"], ["upanishad", "mahavakya", "HOLDS"], ["mahavakya", "soul", "EXPLAINS"],
+  ["enlight", "jnana", "EXPLAINS"], ["enlight", "avidya", "CONTRASTS"], ["mysticism", "enlight", "EXPLAINS"], ["mysticism", "avyakrita", "EXPLAINS"], ["nagarjuna", "chatushkoti", "HOLDS"], ["shankara", "chatushkoti", "HOLDS"], ["chatushkoti", "enlight", "EXPLAINS"],
+  ["dream", "vyavaharika", "EXPLAINS"], ["dream", "freewill", "EXPLAINS"], ["nagarjuna", "dream", "HOLDS"], ["shankara", "dream", "HOLDS"], ["asanga", "dream", "HOLDS"], ["asanga", "buddhism", "PART_OF"],
+  ["religion", "spirituality", "CONTRASTS"], ["spirituality", "nirvana", "EXPLAINS"], ["spirituality", "moksha", "EXPLAINS"], ["vivekananda", "spirituality", "HOLDS"], ["gandhi", "spirituality", "HOLDS"], ["nanak", "spirituality", "HOLDS"], ["philosophy", "religion", "CONTRASTS"],
 ];
