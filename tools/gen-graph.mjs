@@ -238,7 +238,7 @@ for (let i = 0; i < 350; i++) sim.tick();
 
 // ── philosophy-only layout: its own ring, used when the Philosophy tab is open ──────────────────────────────
 {
-  const PR = 300, order = ["ph:found", "ph:history", "ph:astika", "ph:nastika", "ph:buddha", "ph:common", "ph:medieval", "ph:modern"];
+  const PR = 300, order = ["ph:found", "ph:history", "ph:astika", "ph:nastika", "ph:life", "ph:buddha", "ph:common", "ph:medieval", "ph:modern"];
   const pn = nodes.filter((n) => n.phil).map((n) => ({ id: n.id, k: n.k, g: n.g }));
   const pb = new Map(pn.map((n) => [n.id, n]));
   order.forEach((id, i) => { const th = (i / order.length) * Math.PI * 2, h = pb.get(id); h.fx = h.x = PR * Math.cos(th); h.fy = h.y = 20 * Math.sin(th * 3); h.fz = h.z = PR * Math.sin(th); });
