@@ -16,6 +16,7 @@ function askPayload(body){
   const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,14).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,300)}`).join('\n');
   if(String(body?.topic||'')==='philosophy')return {
     mode:'ask',
+    max:1600,
     answer:q,
     system:'You are a teacher of Indian philosophy inside SpeakCosmos, for a learner whose first language is Bengali. Answer using ONLY the numbered notes, which paraphrase Dr. Vikas Divyakirti\'s lectures; if they do not cover the question, say so briefly. Attribute contested views to the speaker. Use simple English, under 140 words, and cite notes as [1], [2]. Return JSON only: {"answer":"...","bn":"the same answer as a clear Bengali paragraph of 2 to 4 sentences"}',
     user:`Question: ${q}\n\nGraph notes:\n${ctx}`
@@ -52,9 +53,14 @@ function safeResult(obj,mode){
 }
 function parseJsonText(raw){
   const text=String(raw||'').trim().replace(/^\`\`\`(?:json)?/i,'').replace(/\`\`\`$/,'').trim();
-  return JSON.parse(text);
+  try{return JSON.parse(text)}catch(e){}
+  const a=text.indexOf('{'),b=text.lastIndexOf('}');
+  if(a>=0&&b>a){try{return JSON.parse(text.slice(a,b+1))}catch(e){}}
+  const m=text.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)/);
+  if(m)return {answer:m[1].replace(/\\n/g,'\n').replace(/\\"/g,'"')};
+  throw new Error('AI returned an unreadable answer');
 }
-async function callOpenAI({key,model,system,user,signal,mode,base='https://api.openai.com/v1'}){
+async function callOpenAI({key,model,system,user,signal,mode,max,base='https://api.openai.com/v1'}){
   const r=await fetch(`${base}/chat/completions`,{
     method:'POST',
     headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
@@ -62,7 +68,7 @@ async function callOpenAI({key,model,system,user,signal,mode,base='https://api.o
     body:JSON.stringify({
       model,
       temperature:0.35,
-      max_tokens:mode==='ask'?600:320,
+      max_tokens:max||(mode==='ask'?600:320),
       response_format:{type:'json_object'},
       messages:[{role:'system',content:system},{role:'user',content:user}]
     })
@@ -71,7 +77,7 @@ async function callOpenAI({key,model,system,user,signal,mode,base='https://api.o
   const j=await r.json();
   return safeResult(parseJsonText(j.choices?.[0]?.message?.content||'{}'),mode);
 }
-async function callGemini({key,model,system,user,signal,mode}){
+async function callGemini({key,model,system,user,signal,mode,max}){
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const r=await fetch(url,{
     method:'POST',
@@ -80,7 +86,7 @@ async function callGemini({key,model,system,user,signal,mode}){
     body:JSON.stringify({
       systemInstruction:{parts:[{text:system}]},
       contents:[{role:'user',parts:[{text:user}]}],
-      generationConfig:{temperature:0.35,maxOutputTokens:mode==='ask'?600:320,responseMimeType:'application/json'}
+      generationConfig:{temperature:0.35,maxOutputTokens:max||(mode==='ask'?600:320),responseMimeType:'application/json'}
     })
   });
   if(!r.ok)throw new Error(`Gemini provider error ${r.status}`);
@@ -121,8 +127,8 @@ export default async function handler(req,res){
   const timeout=setTimeout(()=>controller.abort(),18000);
   try{
     const result=provider==='gemini'
-      ? await callGemini({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode})
-      : await callOpenAI({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,base:provider==='server'?base:'https://api.openai.com/v1'});
+      ? await callGemini({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,max:p.max})
+      : await callOpenAI({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,max:p.max,base:provider==='server'?base:'https://api.openai.com/v1'});
     return res.status(200).json(result);
   }catch(err){
     return res.status(502).json({error:String(err?.message||'AI could not respond').slice(0,180)});
