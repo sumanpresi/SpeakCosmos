@@ -1,0 +1,188 @@
+// Philosophy graph data: ideas and history from Dr. Vikas Divyakirti's (Drishti) philosophy lecture series.
+// Short paraphrases only. Kinds: thinker, school, idea, era.  Hubs are the 8 constellations.
+export const PH_HUBS = [
+  ["ph:found", "Philosophy: what and why", "What philosophy is, how humans reached it (cognitive and Neolithic revolutions), and the big questions it asks.", "#d4a63a", "দর্শন কী ও কেন"],
+  ["ph:history", "Six phases of Indian thought", "The speaker's timeline: Vedic, Nastika, Sutra, Medieval, Renaissance, and post-independence.", "#c98a5a", "ভারতীয় দর্শনের ছয় পর্ব"],
+  ["ph:nastika", "Nastika schools", "Charvaka, Jainism and Buddhism: the traditions that do not accept the Vedas as proof.", "#e0675f", "নাস্তিক দর্শন"],
+  ["ph:astika", "Vedas & the six Darshans", "The Vedas, the Upanishads, and the six Astika schools that accept them.", "#8f7ae0", "বেদ ও ষড়দর্শন"],
+  ["ph:medieval", "Vedanta & Bhakti", "Shankara's Advaita, the Vaishnava Acharyas who answered him, the Bhakti saints, and Sikhism.", "#4fb0a3", "বেদান্ত ও ভক্তি"],
+  ["ph:modern", "Renaissance & modern India", "Neo-Vedanta and the thinkers who linked philosophy to nationalism and equality, and the post-independence paths.", "#5d9ad6", "নবজাগরণ ও আধুনিক ভারত"],
+  ["ph:buddha", "The Buddha", "His life, his refusal to answer some questions (Avyakrita), the Four Noble Truths and the schools after him.", "#e08a4f", "বুদ্ধ"],
+  ["ph:common", "Common threads of Indian thought", "Karma, soul, rebirth, suffering, Moksha, ignorance, knowledge and Pramana: the shared framework.", "#b86fb0", "ভারতীয় দর্শনের সাধারণ সূত্র"],
+];
+
+// [id, kind, label, hub, description, subtitle]
+export const PH_NODES = [
+  // ── Philosophy: what and why ──
+  ["philosophy", "idea", "Philosophy", "ph:found", "From the Greek philos (love) and sophia (wisdom). Wisdom here means discernment (vivek), not memory. It is called the mother of all disciplines because every field began as a question humans asked when life troubled them.", "Concept"],
+  ["darshan", "idea", "Darshan", "ph:found", "The Indian word, from the root drish: to see. A philosopher sees something about the world and life that ordinary looking does not show.", "Concept"],
+  ["pragya", "idea", "Pragya Chakshu", "ph:found", "The eye of wisdom. The same eyes now see something deeper, because thinking has moved beyond fixed categories such as yes/no and good/bad.", "Concept"],
+  ["fullstomach", "idea", "Full stomach, free time", "ph:found", "Opening poem: to be for or against any ideology, your stomach must first be full. Philosophy needs a full stomach and free time, which humans did not have for most of their history.", "Idea"],
+  ["metaphysics", "idea", "Metaphysics (Tattva Mimamsa)", "ph:found", "The most popular branch: what is the world ultimately, what is it made of, and where does its diversity come from. Its three deepest questions concern creation, God and the soul.", "Branch"],
+  ["cosmology", "idea", "Cosmology: how did the world form?", "ph:found", "Creationism says God made it; evolutionism says it developed on its own; a middle view says God set a basic structure and evolution did the rest. The Earth is about 4.5 billion years old and life about 3.7 billion.", "Question"],
+  ["theology", "idea", "God: does He exist?", "ph:found", "Some traditions believe in God; Jainism and Buddhism do not; Taoism and Confucianism hold God differently. Believers then ask what God is like and what He does.", "Question"],
+  ["cogrev", "era", "Cognitive Revolution", "ph:found", "About 70,000 to 75,000 years ago, Homo sapiens' larger brain, its prefrontal cortex and language allowed complex thought, shared rules, morals and the state. Brain size alone is not the answer: an elephant's brain is larger.", "70–75,000 years ago"],
+  ["neolith", "era", "Neolithic (Agricultural) Revolution", "ph:found", "About 10,000 years ago humans learned farming, no longer had to wander or kill for every meal, and gained surplus and leisure. Systematic thinking, philosophy and science grew from this.", "~10,000 years ago"],
+  ["thales", "thinker", "Thales", "ph:found", "Regarded as the West's first philosopher, in the 6th century BC, only about 2,800 years ago. The speaker warns against claims that philosophy is millions of years old.", "Greece, 6th c. BC"],
+  ["greeks", "school", "Early Greek thinkers", "ph:found", "Parmenides, Heraclitus, Pythagoras, Aristotle and Herodotus belong to the same era, when a few Greek cities had the leisure and conditions to think.", "Greek tradition"],
+  ["freewill", "idea", "Determinism vs Free Will", "ph:found", "Niyativada versus Sankalpa Swatantrya: do we really choose our actions? Determinism is the stronger argument, yet society cannot punish, reward or function without assuming free will, so we proceed as if it is real.", "Debate"],
+  ["schopenhauer", "thinker", "Schopenhauer", "ph:found", "German pessimist who said the luckiest are those never born. The speaker contrasts him with Indian thought, which names suffering but ends in liberation.", "German philosopher"],
+  ["epistemology", "idea", "Epistemology (Pramana Shastra)", "ph:found", "The study of how we know. If you claim something is true, philosophy asks for your Pramana: perception, inference, or testimony.", "Branch"],
+
+  // ── Six phases of Indian thought ──
+  ["era1", "era", "Phase 1: Vedic", "ph:history", "The Vedas and Upanishads. Most ideas Hindus hold today (soul, Moksha, rebirth) were already settled by the Upanishads.", "Phase 1"],
+  ["era2", "era", "Phase 2: Nastika schools", "ph:history", "A reaction to heavy ritual and animal sacrifice. Charvaka, Jainism and Buddhism arise.", "Phase 2"],
+  ["era3", "era", "Phase 3: Sutras and Shad Darshan", "ph:history", "The Vedas are reinstated as proof. Short memory-friendly sutras give us the six Astika schools.", "Phase 3"],
+  ["era4", "era", "Phase 4: Medieval commentaries", "ph:history", "Around the time Islam arrived, scholars wrote Bhashyas on the Vedanta sutras. Shankara, Ramanuja, Madhva, the Bhakti saints and Sikhism belong here.", "Phase 4"],
+  ["era5", "era", "Phase 5: Renaissance", "ph:history", "19th and 20th century India's own renaissance and reform, giving Neo-Vedanta. The speaker compares it with Europe's Renaissance and Reformation.", "Phase 5"],
+  ["era6", "era", "Phase 6: After independence", "ph:history", "The speaker adds a sixth phase: Ambedkar, Krishnamurti and Osho, with Iqbal just before independence.", "Phase 6"],
+  ["nine", "idea", "Nine Indian philosophies", "ph:history", "After the Vedas and Upanishads, books recognise nine schools: three Nastika (Charvaka, Jain, Buddhist) and six Astika.", "Concept"],
+
+  // ── Nastika ──
+  ["nastika", "idea", "Nastika vs Astika", "ph:nastika", "In this classification it is not about God or the afterlife. Astika means accepting the Vedas as proof; Nastika means not taking them as proof just because they are written.", "Concept"],
+  ["charvaka", "school", "Charvaka (Lokayata)", "ph:nastika", "The perpetual dissenter, a group rather than one person. It holds that body and soul are one (Dehatmavada), that consciousness arises from matter, as intoxication arises from ingredients like betel and liquor, and it denies rebirth and karma. Its answer to suffering: come in the evening and enjoy.", "Nastika school"],
+  ["brihaspati", "thinker", "Brihaspati", "ph:nastika", "Named as the teacher whose writings gave rise to Charvaka.", "Teacher"],
+  ["ajita", "thinker", "Ajita Kesakambali", "ph:nastika", "A popular materialist in the Buddha's time, linked with the Charvaka line.", "Materialist"],
+  ["emergent", "idea", "Emergentism", "ph:nastika", "The modern echo of Charvaka's claim: mind emerges from physical neurons working together.", "Idea"],
+  ["jain", "school", "Jainism", "ph:nastika", "Does not believe in God. Mahavira is the 24th Tirthankara.", "Nastika school"],
+  ["mahavira", "thinker", "Mahavira", "ph:nastika", "The 24th Tirthankara, living in the same region as the Buddha (present-day Bihar).", "24th Tirthankara"],
+  ["syadvada", "idea", "Syadvada", "ph:nastika", "A profound Jain view of knowledge and the limits of statements. The speaker says it is a deep basis of what we now call Artificial Intelligence.", "Jain idea"],
+  ["buddhism", "school", "Buddhism", "ph:nastika", "Rejects the Vedas as proof and a permanent soul, but accepts rebirth and Moksha.", "Nastika school"],
+
+  // ── Vedas & the six Darshans ──
+  ["vedas", "idea", "The four Vedas", "ph:astika", "Rigveda, Samaveda, Yajurveda and Atharvaveda. Mostly mantras for ritual and worship; little philosophy in the early parts.", "Text"],
+  ["parts", "idea", "Four parts of each Veda", "ph:astika", "Samhita (mantras), Brahmana (procedures), Aranyaka (conduct of forest dwellers) and Upanishad.", "Structure"],
+  ["upanishad", "idea", "Upanishads (Vedanta)", "ph:astika", "The last part of the Vedas, hence 'Vedanta': pure philosophy. Soul, Moksha and rebirth are fixed here.", "Text"],
+  ["apaurusheya", "idea", "Apaurusheya", "ph:astika", "Mimamsa's claim: the Vedas were not composed even by God; they are eternal and uncreated.", "Idea"],
+  ["astika", "idea", "Astika (orthodox) schools", "ph:astika", "Those who accept the Vedas as Pramana. Six of them make the Shad Darshan, called Hindu or Sanatana philosophy.", "Concept"],
+  ["shad", "idea", "Shad Darshan", "ph:astika", "The six: Samkhya, Yoga, Nyaya, Vaisheshika, Mimamsa and Vedanta, working in joint pairs.", "Concept"],
+  ["sutra", "idea", "Sutras", "ph:astika", "Formulas that state a profound idea very briefly so it can be remembered before writing was common. They are hard to understand without commentary.", "Form"],
+  ["samkhya", "school", "Samkhya", "ph:astika", "Paired with Yoga. Its sutra is attributed to Sage Kapila, though the original text has not been found.", "Astika school"],
+  ["yoga", "school", "Yoga", "ph:astika", "Close companion of Samkhya in one group.", "Astika school"],
+  ["nyaya", "school", "Nyaya", "ph:astika", "Paired with Vaisheshika; its Sutra is by Akshapada Gautama.", "Astika school"],
+  ["vaisheshika", "school", "Vaisheshika", "ph:astika", "Works jointly with Nyaya, each accepting what the other develops.", "Astika school"],
+  ["mimamsa", "school", "Mimamsa", "ph:astika", "Treats the Vedas as uncreated; its idea of Moksha is lighter than Vedanta's.", "Astika school"],
+  ["vedanta", "school", "Vedanta", "ph:astika", "The dominant school. The speaker says 90 to 95 per cent of what Hindus believe is Vedanta. Its sources are the Upanishads, the Gita and the Brahma Sutra.", "Astika school"],
+  ["kapila", "thinker", "Kapila", "ph:astika", "Author of the Samkhya Sutra.", "Sage"],
+  ["gautama", "thinker", "Akshapada Gautama", "ph:astika", "Wrote the Nyaya Sutra (not the same Gautama as the Buddha).", "Sage"],
+  ["badarayana", "thinker", "Badarayana", "ph:astika", "Author of the Brahma Sutra; some identify him with Ved Vyasa.", "Sage"],
+  ["gita", "idea", "Bhagavad Gita", "ph:astika", "Teaches Vedanta and is the text most Hindus identify with. It states the immortal soul most clearly.", "Text"],
+
+  // ── Vedanta & Bhakti ──
+  ["bhashya", "idea", "Bhashya (commentary)", "ph:medieval", "Because sutras are cryptic, scholars explained them. Interpreting Vedanta meant commenting on the Upanishads, the Gita and the Brahma Sutra.", "Method"],
+  ["shankara", "thinker", "Shankaracharya", "ph:medieval", "From South India, died at 32 after building a profound philosophy. Said only Brahman is ultimately real.", "Advaita"],
+  ["advaita", "school", "Advaita (non-dualism)", "ph:medieval", "Only Brahman is the absolute truth. God, we and the world are true only at the practical level, like a video game you can step out of.", "Vedanta school"],
+  ["vyavaharika", "idea", "Practical vs ultimate truth", "ph:medieval", "The world and even God are true on the vyavaharika (practical) level; only Brahman is true in the end.", "Idea"],
+  ["nagarjuna", "thinker", "Nagarjuna", "ph:medieval", "Mahayana philosopher whose ideas resemble Shankara's so closely that some call Shankara a 'disguised Buddhist'.", "Mahayana"],
+  ["vaishnava", "school", "Vaishnava Vedanta", "ph:medieval", "Devotees of Vishnu who challenged Shankara by putting devotion at the centre.", "Vedanta school"],
+  ["ramanuja", "thinker", "Ramanujacharya", "ph:medieval", "The first to take Shankara head-on, with Vishishtadvaita (qualified non-dualism).", "Vaishnava"],
+  ["vallabha", "thinker", "Vallabhacharya", "ph:medieval", "Active around Agra, Mathura and Vrindavan; Ballabhgarh is named after him. Surdas was his devotee.", "Vaishnava"],
+  ["nimbarka", "thinker", "Nimbarkacharya", "ph:medieval", "Gave Dvaitadvaita.", "Vaishnava"],
+  ["madhva", "thinker", "Madhvacharya", "ph:medieval", "From Karnataka and Shankara's fiercest critic; his philosophy is Dvaita (dualism).", "Vaishnava"],
+  ["chaitanya", "thinker", "Chaitanya Mahaprabhu", "ph:medieval", "Great devotee of Krishna; his school is Achintya Bhedabheda (inconceivable difference and non-difference).", "Vaishnava"],
+  ["bhakti", "idea", "Bhakti (devotion)", "ph:medieval", "The shared purpose of the Vaishnava Acharyas: to establish the tradition of devotion.", "Movement"],
+  ["ramananda", "thinker", "Ramananda", "ph:medieval", "In Ramanuja's line; his student was Kabir Das.", "Bhakti"],
+  ["kabir", "thinker", "Kabir Das", "ph:medieval", "Bhakti saint; many of his verses are in the Guru Granth Sahib.", "Bhakti"],
+  ["tulsidas", "thinker", "Tulsidas", "ph:medieval", "Bhakti poet in Ramanuja's tradition.", "Bhakti"],
+  ["nanak", "thinker", "Guru Nanak", "ph:medieval", "Founder of Sikhism, whose approach is close to Kabir's.", "Sikhism"],
+  ["sikhism", "school", "Sikhism", "ph:medieval", "A philosophical development of the medieval period; it also holds rebirth.", "Religion"],
+
+  // ── Renaissance & modern ──
+  ["neovedanta", "school", "Neo-Vedanta", "ph:modern", "Vedanta reshaped in the 19th century to present Hinduism as one, answer Western charges of division, and tie philosophy to nationalism and equality.", "Movement"],
+  ["hacker", "thinker", "Paul Hacker", "ph:modern", "The scholar who coined 'Neo-Vedanta', sarcastically, since it made converting Hindus harder.", "Scholar"],
+  ["rammohan", "thinker", "Raja Ram Mohan Roy", "ph:modern", "Started the Brahmo Samaj, combining Hindu beliefs with Unitarian Christian ideas, and addressed malpractices.", "Reformer"],
+  ["ramakrishna", "thinker", "Ramakrishna Paramahamsa", "ph:modern", "Priest at a Kali temple who became Narendranath's teacher.", "Mystic"],
+  ["vivekananda", "thinker", "Swami Vivekananda", "ph:modern", "Narendranath Datta, the most prominent symbol of Neo-Vedanta.", "Neo-Vedanta"],
+  ["aurobindo", "thinker", "Sri Aurobindo", "ph:modern", "Freedom fighter turned philosopher: Integral Yoga.", "Neo-Vedanta"],
+  ["gandhi", "thinker", "Mahatma Gandhi", "ph:modern", "Took both Neo-Vedanta and Vaishnava Vedanta along.", "Neo-Vedanta"],
+  ["radhakrishnan", "thinker", "S. Radhakrishnan", "ph:modern", "His philosophy is in the same Neo-Vedanta stream.", "Neo-Vedanta"],
+  ["dayananda", "thinker", "Dayananda Saraswati", "ph:modern", "Founded the Arya Samaj, which stresses logic, rejects caste, and backs gender equality under the slogan of returning to the Vedas.", "Reformer"],
+  ["nationalism", "idea", "Philosophy meets nationalism", "ph:modern", "Neo-Vedanta's main work: treating the world as real and worth acting in, against the view that the world is mithya and freedom an illusion.", "Idea"],
+  ["iqbal", "thinker", "Allama Iqbal", "ph:modern", "Considered as a philosopher just before independence.", "Poet-philosopher"],
+  ["ambedkar", "thinker", "Dr. B.R. Ambedkar", "ph:modern", "Found that caste endured, turned to Buddhism, but rejected traditional karma and Nirvana to create Navayana.", "Post-1947"],
+  ["navayana", "school", "Navayana Buddhism", "ph:modern", "Ambedkar's new form of Buddhist philosophy.", "Post-1947"],
+  ["krishnamurti", "thinker", "J. Krishnamurti", "ph:modern", "Rejected all old beliefs and offered a new philosophy, popular especially in South India.", "Post-1947"],
+  ["osho", "thinker", "Osho", "ph:modern", "Formidable arguer who introduced dynamic meditation: meditation while dancing.", "Post-1947"],
+  ["women", "idea", "Women philosophers", "ph:modern", "Learned women appear in the Upanishadic period, then participation almost vanishes. The speaker links it to low participation of women everywhere.", "Idea"],
+
+  // ── The Buddha ──
+  ["buddha", "thinker", "Gautama Buddha", "ph:buddha", "Attained enlightenment at 35 and died at 80. The speaker says he was less a philosopher than a reformer who wanted society to stop suffering.", "Teacher"],
+  ["departure", "era", "The Great Departure", "ph:buddha", "Popular story: four sights made him leave at 28 or 29. Ambedkar's account: he tried to prevent a war between the Shakyas and Kosala, and chose Sannyasa as a way out.", "Life"],
+  ["sujata", "era", "Sujata's kheer and the Middle Path", "ph:buddha", "After six years of severe penance, a bowl of rice milk led him to the Middle Path (ethically, neither indulgence nor harsh renunciation). He then sat and attained enlightenment.", "Life"],
+  ["avyakrita", "idea", "Avyakrita", "ph:buddha", "Questions the Buddha would not answer, because they do not help end suffering. Not ignorance but a crisis of expression.", "Idea"],
+  ["chatushkoti", "idea", "Chatushkoti", "ph:buddha", "Four-cornered logic: is it, is it not, both, neither. Each question about the world, soul or Tathagata was answered by none of the four.", "Logic"],
+  ["arrow", "idea", "The wounded man", "ph:buddha", "Treat the wounded first, not the theory. Human civilisation is wounded; the task is relief.", "Analogy"],
+  ["inexplicable", "idea", "Cognitive inexplicability", "ph:buddha", "Equal arguments for and against mean a question cannot be proven; mystical experience cannot be put into ordinary language.", "Idea"],
+  ["kant", "thinker", "Immanuel Kant", "ph:buddha", "18th-century German philosopher the speaker cites for a similar view that some questions cannot be settled by reason.", "German philosopher"],
+  ["fourtruths", "idea", "The Four Noble Truths", "ph:buddha", "Sarvam Dukkham (suffering), its cause in ignorance, its cessation (Nirvana), and the path to it. Framed like a doctor's diagnosis.", "Teaching"],
+  ["dukkha", "idea", "Sarvam Dukkham", "ph:buddha", "Even what we call happiness is suffering: striving for it, guarding it, and losing it.", "First Truth"],
+  ["eightfold", "idea", "Eightfold Path", "ph:buddha", "Ashtangika Marga: the eight-limbed path to end suffering.", "Fourth Truth"],
+  ["nirvana", "idea", "Nirvana", "ph:buddha", "The end of suffering (Dukkha Nirodha).", "Third Truth"],
+  ["anatman", "idea", "No permanent soul", "ph:buddha", "No fixed soul; consciousness is a continuous stream, like a flame that passes on. It explains rebirth.", "Idea"],
+  ["theravada", "school", "Theravada (Hinayana)", "ph:buddha", "One of the early schools after the Buddha.", "Post-Buddha"],
+  ["mahayana", "school", "Mahayana", "ph:buddha", "Grew from the Mahasanghika line; it considers Moksha as supreme bliss and accepts transfer of merit (Parinamana).", "Post-Buddha"],
+  ["vajrayana", "school", "Vajrayana", "ph:buddha", "Later school within Mahayana, alongside Tantrayana and Mantrayana.", "Post-Buddha"],
+  ["appa", "idea", "Appa Deepo Bhava", "ph:buddha", "His last words: be your own light.", "Teaching"],
+
+  // ── Common threads ──
+  ["karma", "idea", "Theory of Karma", "ph:common", "Whatever you do will return to you. Two rules: what you did cannot be destroyed, and what you did not do cannot reach you. Karma cannot be transferred.", "Common thread"],
+  ["karmatypes", "idea", "Three kinds of Karma", "ph:common", "Sanchita (accumulated), Prarabdha (now bearing fruit) and Kriyamana (being done now).", "Detail"],
+  ["soul", "idea", "The soul (Atman)", "ph:common", "A conscious, immortal, eternal element in the body. Needed so that the person who acts is the person who reaps. Only Charvaka and Buddhism deny it.", "Common thread"],
+  ["rebirth", "idea", "Rebirth", "ph:common", "Almost every Indian school except Charvaka holds it. It explains birth into poverty or wealth, and even justified caste, which some criticise.", "Common thread"],
+  ["suffering", "idea", "World is full of suffering", "ph:common", "All but Charvaka agree. Suffering comes in three kinds: supernatural, environmental and bodily.", "Common thread"],
+  ["moksha", "idea", "Moksha", "ph:common", "Liberation from the cycle of karma and rebirth. It is permanent. In Semitic religions the goal is Heaven rather than liberation.", "Common thread"],
+  ["avidya", "idea", "Ignorance (Avidya)", "ph:common", "The root of bondage: we take ourselves to be the body.", "Common thread"],
+  ["jnana", "idea", "Knowledge (Jnana)", "ph:common", "Liberation comes through knowledge, though some add devotion or action.", "Common thread"],
+  ["pramana", "idea", "Pramana", "ph:common", "The valid source of knowledge: every claim must name its evidence.", "Common thread"],
+  ["resurrection", "idea", "Rebirth outside India", "ph:common", "Plato, Socrates and Giordano Bruno spoke of it; Ian Stevenson studied claims of past lives for 40 years. Abrahamic faiths mostly reject it, though Sufis and the Jewish 'Gilgul' touch it.", "Comparison"],
+];
+
+// [from, to, relation]
+export const PH_EDGES = [
+  // chronology
+  ["era1", "era2", "NEXT_ERA"], ["era2", "era3", "NEXT_ERA"], ["era3", "era4", "NEXT_ERA"], ["era4", "era5", "NEXT_ERA"], ["era5", "era6", "NEXT_ERA"],
+  ["cogrev", "neolith", "NEXT_ERA"], ["neolith", "era1", "NEXT_ERA"], ["departure", "sujata", "NEXT_ERA"],
+  ["era1", "upanishad", "HOLDS"], ["era1", "vedas", "HOLDS"], ["era2", "charvaka", "HOLDS"], ["era2", "jain", "HOLDS"], ["era2", "buddhism", "HOLDS"],
+  ["era3", "shad", "HOLDS"], ["era3", "sutra", "HOLDS"], ["era4", "shankara", "HOLDS"], ["era4", "sikhism", "HOLDS"], ["era4", "bhashya", "HOLDS"],
+  ["era5", "neovedanta", "HOLDS"], ["era6", "ambedkar", "HOLDS"], ["era6", "krishnamurti", "HOLDS"], ["era6", "osho", "HOLDS"], ["nine", "shad", "PART_OF"],
+  // foundations
+  ["darshan", "pragya", "EXPLAINS"], ["darshan", "philosophy", "CONTRASTS"], ["fullstomach", "neolith", "EXPLAINS"], ["cogrev", "philosophy", "INFLUENCES"], ["neolith", "thales", "INFLUENCES"],
+  ["thales", "greeks", "PART_OF"], ["metaphysics", "philosophy", "PART_OF"], ["cosmology", "metaphysics", "PART_OF"], ["theology", "metaphysics", "PART_OF"], ["soul", "metaphysics", "PART_OF"],
+  ["epistemology", "philosophy", "PART_OF"], ["epistemology", "pramana", "EXPLAINS"], ["schopenhauer", "suffering", "CONTRASTS"],
+  ["theology", "jain", "CONTRASTS"], ["theology", "buddhism", "CONTRASTS"],
+  // Nastika
+  ["nastika", "astika", "CONTRASTS"], ["charvaka", "nastika", "PART_OF"], ["jain", "nastika", "PART_OF"], ["buddhism", "nastika", "PART_OF"],
+  ["brihaspati", "charvaka", "FOUNDED"], ["ajita", "charvaka", "INFLUENCES"], ["charvaka", "soul", "REJECTS"], ["charvaka", "rebirth", "REJECTS"], ["charvaka", "karma", "REJECTS"],
+  ["charvaka", "moksha", "REJECTS"], ["charvaka", "suffering", "REJECTS"], ["charvaka", "emergent", "INFLUENCES"], ["charvaka", "vedas", "REJECTS"],
+  ["mahavira", "jain", "FOUNDED"], ["jain", "syadvada", "HOLDS"], ["jain", "vedas", "REJECTS"], ["buddha", "buddhism", "FOUNDED"],
+  ["buddhism", "anatman", "HOLDS"], ["buddhism", "rebirth", "HOLDS"], ["buddhism", "moksha", "HOLDS"], ["buddhism", "vedas", "REJECTS"], ["buddhism", "karma", "HOLDS"],
+  // Vedic and Astika
+  ["vedas", "parts", "EXPLAINS"], ["upanishad", "parts", "PART_OF"], ["upanishad", "vedanta", "INFLUENCES"], ["upanishad", "soul", "EXPLAINS"], ["upanishad", "moksha", "EXPLAINS"], ["upanishad", "rebirth", "EXPLAINS"],
+  ["upanishad", "karma", "EXPLAINS"], ["apaurusheya", "mimamsa", "PART_OF"], ["astika", "vedas", "HOLDS"], ["shad", "astika", "PART_OF"],
+  ["samkhya", "shad", "PART_OF"], ["yoga", "shad", "PART_OF"], ["nyaya", "shad", "PART_OF"], ["vaisheshika", "shad", "PART_OF"], ["mimamsa", "shad", "PART_OF"], ["vedanta", "shad", "PART_OF"],
+  ["samkhya", "yoga", "CONTRASTS"], ["nyaya", "vaisheshika", "CONTRASTS"], ["kapila", "samkhya", "FOUNDED"], ["gautama", "nyaya", "FOUNDED"], ["badarayana", "vedanta", "FOUNDED"], ["sutra", "bhashya", "INFLUENCES"],
+  ["gita", "vedanta", "INFLUENCES"], ["gita", "soul", "EXPLAINS"], ["gita", "bhashya", "INFLUENCES"], ["upanishad", "bhashya", "INFLUENCES"], 
+  ["mimamsa", "moksha", "HOLDS"], 
+  // Medieval
+  ["shankara", "advaita", "FOUNDED"], ["advaita", "vedanta", "PART_OF"], ["advaita", "vyavaharika", "HOLDS"], ["nagarjuna", "shankara", "INFLUENCES"], ["advaita", "buddhism", "CONTRASTS"],
+  ["vaishnava", "advaita", "CRITIQUES"], ["ramanuja", "vaishnava", "FOUNDED"], ["ramanuja", "shankara", "CRITIQUES"], ["vallabha", "vaishnava", "PART_OF"], ["nimbarka", "vaishnava", "PART_OF"],
+  ["madhva", "vaishnava", "PART_OF"], ["madhva", "shankara", "CRITIQUES"], ["chaitanya", "vaishnava", "PART_OF"], ["vaishnava", "bhakti", "HOLDS"],
+  ["ramanuja", "ramananda", "INFLUENCES"], ["ramananda", "kabir", "INFLUENCES"], ["ramanuja", "tulsidas", "INFLUENCES"], ["bhakti", "kabir", "INFLUENCES"], ["kabir", "nanak", "INFLUENCES"], ["nanak", "sikhism", "FOUNDED"],
+  ["sikhism", "rebirth", "HOLDS"], 
+  // Modern
+  ["hacker", "neovedanta", "CRITIQUES"], ["rammohan", "neovedanta", "INFLUENCES"], ["ramakrishna", "vivekananda", "INFLUENCES"], ["vivekananda", "neovedanta", "FOUNDED"], ["aurobindo", "neovedanta", "PART_OF"],
+  ["gandhi", "neovedanta", "PART_OF"], ["radhakrishnan", "neovedanta", "PART_OF"], ["dayananda", "neovedanta", "PART_OF"], ["dayananda", "vedas", "HOLDS"],
+  ["neovedanta", "nationalism", "HOLDS"], ["neovedanta", "advaita", "CRITIQUES"], 
+  ["ambedkar", "neovedanta", "CRITIQUES"], ["ambedkar", "navayana", "FOUNDED"], ["navayana", "buddhism", "PART_OF"], ["ambedkar", "departure", "EXPLAINS"], ["navayana", "karma", "REJECTS"], ["navayana", "nirvana", "REJECTS"],
+  
+  // Buddha
+  ["departure", "buddha", "EXPLAINS"], ["sujata", "buddha", "EXPLAINS"], ["buddha", "avyakrita", "HOLDS"], ["avyakrita", "chatushkoti", "EXPLAINS"], ["avyakrita", "arrow", "EXPLAINS"], ["avyakrita", "inexplicable", "EXPLAINS"],
+  ["kant", "inexplicable", "INFLUENCES"], ["buddha", "fourtruths", "HOLDS"], ["fourtruths", "dukkha", "PART_OF"], ["fourtruths", "avidya", "EXPLAINS"], ["fourtruths", "nirvana", "PART_OF"], ["fourtruths", "eightfold", "PART_OF"],
+  ["dukkha", "suffering", "EXPLAINS"], ["nirvana", "moksha", "EXPLAINS"], ["anatman", "soul", "CRITIQUES"], ["anatman", "rebirth", "EXPLAINS"], ["buddha", "appa", "HOLDS"], ["buddha", "charvaka", "CONTRASTS"],
+  ["buddhism", "theravada", "INFLUENCES"], ["buddhism", "mahayana", "INFLUENCES"], ["mahayana", "vajrayana", "INFLUENCES"], ["nagarjuna", "mahayana", "PART_OF"], ["mahayana", "karma", "CONTRASTS"], 
+  
+  // Common threads
+  ["karma", "karmatypes", "EXPLAINS"], ["karma", "soul", "INFLUENCES"], ["karma", "rebirth", "INFLUENCES"], ["rebirth", "moksha", "CONTRASTS"], ["suffering", "moksha", "INFLUENCES"], ["avidya", "suffering", "INFLUENCES"],
+  ["jnana", "avidya", "CONTRASTS"], ["jnana", "moksha", "INFLUENCES"], ["pramana", "jnana", "EXPLAINS"], ["resurrection", "rebirth", "CONTRASTS"], ["moksha", "bhakti", "CONTRASTS"],
+  ["vaishnava", "gandhi", "INFLUENCES"], ["women", "era1", "PART_OF"], ["era5", "iqbal", "HOLDS"], ["freewill", "karma", "INFLUENCES"],
+];

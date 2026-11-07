@@ -4,6 +4,7 @@
 // Usage: node gen-graph.mjs <base-index.html> <speakwell-dir> <out.json>
 import { readFileSync, writeFileSync } from "node:fs";
 import vm from "node:vm";
+import { PH_HUBS, PH_NODES, PH_EDGES } from "./philosophy.mjs";
 import { forceCenter, forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 
 const [, , basePath, swDir, outPath, daysPath = new URL("./days.json", import.meta.url).pathname] = process.argv;
@@ -46,6 +47,7 @@ hub("h:drill", "Cognitive drills", "Fluency and word-retrieval exercises.", "#6e
 hub("h:word", "Confused words", "Pairs that are easy to mix up, with a sentence for each.", "#83c9f4");
 const DAYS = JSON.parse(readFileSync(daysPath, "utf8"));
 hub("h:course", "100-day course", "A structured 100-day plan: basics, grammar, expressions, reading, then speaking and writing. Each day links to the lessons and skills it teaches.", "#e58ab0");
+for (const [id, label, desc, color, bn] of PH_HUBS) hub(id, label, desc, color, { bn, phil: 1 });
 for (const h of hubs) link(h.id, "core", "ON_CORE");
 
 // ── skills (the app's 35 topics) ────────────────────────────────────────────────────────────────────────────
@@ -185,11 +187,15 @@ for (const d of DAYS) {
   for (const to of d.to) link("dy:" + d.n, to, to.startsWith("sc:") ? "PREPARES" : "TEACHES");
 }
 
+// ── philosophy: thinkers, schools, ideas and eras from Dr. Vikas Divyakirti's lecture series ────────────────
+for (const [id, k, l, g, d, sub] of PH_NODES) { add({ id: "pn:" + id, k, l, d, g, sub, phil: 1 }); link("pn:" + id, g, "BELONGS_TO"); }
+for (const [s, t, rel] of PH_EDGES) link("pn:" + s, "pn:" + t, rel);
+
 // ── layout (the GitaViśva recipe) ───────────────────────────────────────────────────────────────────────────
 const RING_R = 380;
 const REL = {
   BELONGS_TO: { dist: 46, str: 0.55 }, PART_OF: { dist: 13, str: 0.75 }, USES: { dist: 120, str: 0.03 }, COVERS: { dist: 130, str: 0.025 },
-  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, TEACHES: { dist: 150, str: 0.02 }, PREPARES: { dist: 150, str: 0.02 }, NEXT_DAY: { dist: 34, str: 0.04 }, NEXT_SKILL: { dist: 70, str: 0 }, ON_CORE: { dist: 380, str: 0 },
+  PRACTISES: { dist: 130, str: 0.025 }, MENTIONS_WORD: { dist: 110, str: 0.012 }, NEXT_LESSON: { dist: 60, str: 0 }, TRAINS: { dist: 140, str: 0.02 }, TEACHES: { dist: 150, str: 0.02 }, PREPARES: { dist: 150, str: 0.02 }, NEXT_DAY: { dist: 34, str: 0.04 }, NEXT_SKILL: { dist: 70, str: 0 }, FOUNDED: { dist: 55, str: 0.06 }, CRITIQUES: { dist: 90, str: 0.03 }, INFLUENCES: { dist: 75, str: 0.04 }, HOLDS: { dist: 70, str: 0.05 }, REJECTS: { dist: 85, str: 0.03 }, EXPLAINS: { dist: 60, str: 0.05 }, CONTRASTS: { dist: 95, str: 0.02 }, NEXT_ERA: { dist: 55, str: 0.05 }, ON_CORE: { dist: 380, str: 0 },
 };
 const ringOrder = ["g:speaking", "g:work", "g:everyday", "sg:present", ...hubs.map((h) => h.id)].filter((v, i, a) => a.indexOf(v) === i);
 hubs.sort((x, y) => ringOrder.indexOf(x.id) - ringOrder.indexOf(y.id));
@@ -230,13 +236,31 @@ const sim = forceSimulation(nodes, 3)
   .stop();
 for (let i = 0; i < 350; i++) sim.tick();
 
+// ── philosophy-only layout: its own ring, used when the Philosophy tab is open ──────────────────────────────
+{
+  const PR = 300, order = ["ph:found", "ph:history", "ph:astika", "ph:nastika", "ph:buddha", "ph:common", "ph:medieval", "ph:modern"];
+  const pn = nodes.filter((n) => n.phil).map((n) => ({ id: n.id, k: n.k, g: n.g }));
+  const pb = new Map(pn.map((n) => [n.id, n]));
+  order.forEach((id, i) => { const th = (i / order.length) * Math.PI * 2, h = pb.get(id); h.fx = h.x = PR * Math.cos(th); h.fy = h.y = 20 * Math.sin(th * 3); h.fz = h.z = PR * Math.sin(th); });
+  for (const n of pn) if (n.fx === undefined) { const h = pb.get(n.g); n.x = h.x * 0.75 + rnd() * 50; n.y = rnd() * 50; n.z = h.z * 0.75 + rnd() * 50; }
+  const pl = edges.filter(([s, t]) => pb.has(s) && pb.has(t)).map(([s, t, rel]) => ({ source: s, target: t, rel }));
+  const psim = forceSimulation(pn, 3).alphaDecay(0.02).velocityDecay(0.35)
+    .force("link", forceLink(pl).id((d) => d.id).distance((l) => (l.rel === "BELONGS_TO" ? 40 : REL[l.rel].dist * 0.9)).strength((l) => (l.rel === "BELONGS_TO" ? 0.5 : Math.max(REL[l.rel].str, 0.05))))
+    .force("charge", forceManyBody().strength(-38).distanceMax(300))
+    .force("center", forceCenter())
+    .force("contain", Object.assign((alpha) => { for (const n of pn) { if (n.fx !== undefined) continue; const r = Math.hypot(n.x, n.z), max = PR * 0.85; if (r > max) { const k = ((r - max) / r) * alpha * 0.4; n.vx -= n.x * k; n.vz -= n.z * k; } n.vy -= n.y * alpha * 0.04; } }, { initialize: () => {} }))
+    .stop();
+  for (let i = 0; i < 400; i++) psim.tick();
+  for (const n of pn) { const m = byId.get(n.id); m.q = [Math.round(n.x * 10) / 10, Math.round(n.y * 10) / 10, Math.round(n.z * 10) / 10]; }
+}
+
 // ── write ───────────────────────────────────────────────────────────────────────────────────────────────────
 const r1 = (v) => Math.round(v * 10) / 10;
 const out = {
   kind: "speakcosmos-graph", version: 1, generatedAt: new Date().toISOString(),
   nodes: nodes.map((n) => {
-    const { x, y, z, vx, vy, vz, fx, fy, fz, index, ...rest } = n;
-    return { ...rest, p: [r1(x), r1(y), r1(z)] };
+    const { x, y, z, vx, vy, vz, fx, fy, fz, index, q, ...rest } = n;
+    return { ...rest, p: [r1(x), r1(y), r1(z)], ...(q ? { q } : {}) };
   }),
   edges,
 };
