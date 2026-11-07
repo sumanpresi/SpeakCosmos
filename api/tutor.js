@@ -14,6 +14,12 @@ function cleanModel(v){return String(v||'').trim().replace(/[^a-zA-Z0-9._:/-]/g,
 function askPayload(body){
   const q=String(body?.question||'').slice(0,500);
   const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,14).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,300)}`).join('\n');
+  if(String(body?.topic||'')==='philosophy')return {
+    mode:'ask',
+    answer:q,
+    system:'You are a teacher of Indian philosophy inside SpeakCosmos, for a learner whose first language is Bengali. Answer using ONLY the numbered notes, which paraphrase Dr. Vikas Divyakirti\'s lectures; if they do not cover the question, say so briefly. Attribute contested views to the speaker. Use simple English, under 140 words, and cite notes as [1], [2]. Return JSON only: {"answer":"...","bn":"the same answer as a clear Bengali paragraph of 2 to 4 sentences"}',
+    user:`Question: ${q}\n\nGraph notes:\n${ctx}`
+  };
   return {
     mode:'ask',
     answer:q,
@@ -34,7 +40,7 @@ function promptPayload(body){
 function safeResult(obj,mode){
   if(mode==='ask'){
     if(!obj||!obj.answer)throw new Error('Invalid AI answer');
-    return {answer:String(obj.answer).slice(0,1400),bn:String(obj.bn||'').slice(0,400)};
+    return {answer:String(obj.answer).slice(0,1400),bn:String(obj.bn||'').slice(0,900)};
   }
   if(!obj||!obj.good||!obj.next)throw new Error('Invalid AI feedback');
   return {
