@@ -68,18 +68,21 @@ async function providerError(name,r,model){
 }
 async function callOpenAI({key,model,system,user,signal,mode,max,base='https://api.openai.com/v1'}){
   const official=/^https:\/\/api\.openai\.com\//.test(base),reasoning=/^(o\d|gpt-5)/i.test(model);
-  const r=await fetch(`${base}/chat/completions`,{
-    method:'POST',
-    headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
-    signal,
-    body:JSON.stringify({
-      model,
-      ...(reasoning?{}:{temperature:0.35}),
-      [official?'max_completion_tokens':'max_tokens']:(max||(mode==='ask'?600:320))*(reasoning?4:1),
-      response_format:{type:'json_object'},
-      messages:[{role:'system',content:system},{role:'user',content:user}]
-    })
-  });
+  const n=(max||(mode==='ask'?600:320))*(reasoning?4:1);
+  const body={model,temperature:0.35,response_format:{type:'json_object'},messages:[{role:'system',content:system},{role:'user',content:user}]};
+  if(reasoning)delete body.temperature;
+  body[official?'max_completion_tokens':'max_tokens']=n;
+  let r;
+  for(let attempt=0;attempt<3;attempt++){
+    r=await fetch(`${base}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal,body:JSON.stringify(body)});
+    if(r.ok||r.status!==400)break;
+    // some models reject a parameter: adapt once per parameter and retry
+    let msg='';try{msg=String((await r.clone().json())?.error?.message||'')}catch(e){}
+    if(/temperature/i.test(msg)&&'temperature' in body){delete body.temperature;body.max_completion_tokens=body.max_completion_tokens||body.max_tokens;continue}
+    if(/max_tokens/i.test(msg)&&'max_tokens' in body){body.max_completion_tokens=body.max_tokens*(reasoning?1:3);delete body.max_tokens;continue}
+    if(/max_completion_tokens/i.test(msg)&&'max_completion_tokens' in body){body.max_tokens=body.max_completion_tokens;delete body.max_completion_tokens;continue}
+    break;
+  }
   if(!r.ok)throw new Error(await providerError('OpenAI',r,model));
   const j=await r.json();
   return safeResult(parseJsonText(j.choices?.[0]?.message?.content||'{}'),mode);
