@@ -67,14 +67,15 @@ async function providerError(name,r,model){
   return `${name} error ${r.status}.${hint}${m&&r.status!==404?' '+m:''}`.slice(0,175);
 }
 async function callOpenAI({key,model,system,user,signal,mode,max,base='https://api.openai.com/v1'}){
+  const official=/^https:\/\/api\.openai\.com\//.test(base),reasoning=/^(o\d|gpt-5)/i.test(model);
   const r=await fetch(`${base}/chat/completions`,{
     method:'POST',
     headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
     signal,
     body:JSON.stringify({
       model,
-      temperature:0.35,
-      max_tokens:max||(mode==='ask'?600:320),
+      ...(reasoning?{}:{temperature:0.35}),
+      [official?'max_completion_tokens':'max_tokens']:(max||(mode==='ask'?600:320))*(reasoning?4:1),
       response_format:{type:'json_object'},
       messages:[{role:'system',content:system},{role:'user',content:user}]
     })
