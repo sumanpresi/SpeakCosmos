@@ -60,6 +60,12 @@ function parseJsonText(raw){
   if(m)return {answer:m[1].replace(/\\n/g,'\n').replace(/\\"/g,'"')};
   throw new Error('AI returned an unreadable answer');
 }
+async function providerError(name,r,model){
+  let m='';try{const j=await r.json();m=String(j?.error?.message||j?.error||'')}catch(e){}
+  m=m.replace(/key=[^\s&]+/g,'').replace(/sk-[A-Za-z0-9_-]+/g,'').slice(0,110);
+  const hint=r.status===404?` Model "${model}" was not found: check the model name in AI settings.`:r.status===401||r.status===403?' Check the API key in AI settings.':r.status===429?' Rate limit or quota reached.':'';
+  return `${name} error ${r.status}.${hint}${m&&r.status!==404?' '+m:''}`.slice(0,175);
+}
 async function callOpenAI({key,model,system,user,signal,mode,max,base='https://api.openai.com/v1'}){
   const r=await fetch(`${base}/chat/completions`,{
     method:'POST',
@@ -73,7 +79,7 @@ async function callOpenAI({key,model,system,user,signal,mode,max,base='https://a
       messages:[{role:'system',content:system},{role:'user',content:user}]
     })
   });
-  if(!r.ok)throw new Error(`OpenAI provider error ${r.status}`);
+  if(!r.ok)throw new Error(await providerError('OpenAI',r,model));
   const j=await r.json();
   return safeResult(parseJsonText(j.choices?.[0]?.message?.content||'{}'),mode);
 }
@@ -89,7 +95,7 @@ async function callGemini({key,model,system,user,signal,mode,max}){
       generationConfig:{temperature:0.35,maxOutputTokens:max||(mode==='ask'?600:320),responseMimeType:'application/json'}
     })
   });
-  if(!r.ok)throw new Error(`Gemini provider error ${r.status}`);
+  if(!r.ok)throw new Error(await providerError('Gemini',r,model));
   const j=await r.json();
   const raw=j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'{}';
   return safeResult(parseJsonText(raw),mode);
