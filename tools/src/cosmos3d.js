@@ -1308,7 +1308,7 @@ export function mount(root, opts) {
       out.push(`<h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p>`);
     }
     out.push(platformActions(n));
-    if (n.k !== "core" && !out.join("").includes("data-ai-node") && !(n.user && SRC_MAP[n.t] && srcRange(n))) out.push(aiBlock(n));
+    if (n.k !== "core" && !out.join("").includes("data-ai-node")) out.push(aiBlock(n));
     // connections, grouped by relation
     const groups = new Map();
     for (const a of adj.get(n.id) ?? []) { if (raw.get(a.other)?.k === "core") continue; const key = `${a.e.rel}|${a.out ? 1 : 0}`; groups.set(key, [...(groups.get(key) ?? []), a.other]); }
