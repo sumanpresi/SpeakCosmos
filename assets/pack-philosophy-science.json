@@ -1,0 +1,404 @@
+{
+ "v": 1,
+ "topics": [
+  {
+   "id": "ph-science",
+   "label": "Science, religion and superstition",
+   "color": "#d4572b",
+   "desc": "Scientific temper, faith versus superstition, ghosts, miracles, magic, telepathy and where religion and science meet. One 3-hour Q&A with Vikas Divyakirti",
+   "parent": "phil",
+   "created": 1762800000000,
+   "updated": 1762800000000
+  }
+ ],
+ "notes": [
+  {
+   "id": "phs-01",
+   "topic": "ph-science",
+   "title": "Scientific temper is a method",
+   "text": "The speaker says science is not a school subject but a method: raise a question, observe, experiment, stay objective and accept what the evidence gives. Nehru popularised the phrase scientific temper, meaning science as one's nature. (≈0:02:04–0:04:07) Next: [[Accept, doubt and admit you may be wrong]].",
+   "created": 1762800000000,
+   "updated": 1762800000000
+  },
+  {
+   "id": "phs-02",
+   "topic": "ph-science",
+   "title": "Accept, doubt and admit you may be wrong",
+   "text": "A person with scientific temper asks questions, keeps researching, puts unanswered questions in brackets and believes only what has enough evidence from experience or reason. He gives Einstein and Aristotle as examples of great minds later proved wrong. (≈0:04:07–0:06:11) See [[Science and the longer human life]].",
+   "created": 1762800001000,
+   "updated": 1762800001000
+  },
+  {
+   "id": "phs-03",
+   "topic": "ph-science",
+   "title": "Science and the longer human life",
+   "text": "Life expectancy in India rose from about 32 in 1947 to about 71, which he credits to science: vaccines, TB treatment, sanitation. Smallpox and the 1918 flu show what happens without a vaccine. The figures are as he gives them. (≈0:06:11–0:10:15) Compare [[Why scientific temper is needed today]].",
+   "created": 1762800002000,
+   "updated": 1762800002000
+  },
+  {
+   "id": "phs-04",
+   "topic": "ph-science",
+   "title": "Why scientific temper is needed today",
+   "text": "Asked why we need it when work went on without it for ages, he says people also lived without computers or electricity, but we cannot go back, and our habits and survival depend on science. (≈0:04:07–0:06:11) See [[Science and the longer human life]].",
+   "created": 1762800003000,
+   "updated": 1762800003000
+  },
+  {
+   "id": "phs-05",
+   "topic": "ph-science",
+   "title": "Atheism, belief and agnosticism",
+   "text": "He rejects the black and white picture of believer versus atheist. There is a spectrum; the burden of proof lies on whoever claims, and the logical middle position is to weigh and hold off. He prefers agnosticism. (≈0:10:15–0:14:21 and 0:14:21–0:16:21) Next: [[Pascal, James and pragmatic belief]].",
+   "created": 1762800004000,
+   "updated": 1762800004000
+  },
+  {
+   "id": "phs-06",
+   "topic": "ph-science",
+   "title": "Pascal, James and pragmatic belief",
+   "text": "Pascal argued that believing in God is the safer bet; William James's pragmatism accepts what is practically useful. The speaker says one can adopt soft theism for peace and humility without claiming proof. Hume is named as a sceptic. (≈0:12:18–0:16:21) See [[A virtuous God versus Shankara's God]].",
+   "created": 1762800005000,
+   "updated": 1762800005000
+  },
+  {
+   "id": "phs-07",
+   "topic": "ph-science",
+   "title": "A virtuous God versus Shankara's God",
+   "text": "A God with qualities (mighty, merciful) soothes the heart but is hard to defend logically. He says that whoever wants logical consistency should follow Shankaracharya and Hegel, whose God is beyond description and so cannot be disproved. (≈0:16:21–0:18:23)",
+   "created": 1762800006000,
+   "updated": 1762800006000
+  },
+  {
+   "id": "phs-08",
+   "topic": "ph-science",
+   "title": "Faith versus superstition",
+   "text": "He defines faith and disbelief as positions you can defend with experience or logic, while superstition and blind disbelief are beliefs that evidence or reasoning easily refute. Superstition is not only Indian; he says Friday the 13th and touching wood are examples. The details of the Western superstitions in the transcript are garbled. (≈0:18:23–0:22:25) Compare [[Blind disbelief: the Kepler story]].",
+   "created": 1762800007000,
+   "updated": 1762800007000
+  },
+  {
+   "id": "phs-09",
+   "topic": "ph-science",
+   "title": "The black cat test",
+   "text": "He suggests an experiment: ask 10 people to cross a black cat's path daily for a year and 20 who know nothing, then compare their lives. He expects no difference, and says placebo and nocebo explain why belief still hurts. (≈0:20:24–0:24:29) See [[Placebo, nocebo and belief]].",
+   "created": 1762800008000,
+   "updated": 1762800008000
+  },
+  {
+   "id": "phs-10",
+   "topic": "ph-science",
+   "title": "Blind disbelief: the Kepler story",
+   "text": "Kepler wrote a story, The Dream, about a settlement on the moon with a witch-like mother. People read it as truth and accused his own mother of witchcraft; she spent 14 months in prison and died soon after release. He uses it to show that saying humans can never reach the moon is also blind disbelief. (≈0:24:29–0:28:32) Next: [[Why people feared eclipses]].",
+   "created": 1762800009000,
+   "updated": 1762800009000
+  },
+  {
+   "id": "phs-11",
+   "topic": "ph-science",
+   "title": "Why people feared eclipses",
+   "text": "Early humans had no explanation for eclipses, rainbows or hot springs, so they made stories such as a god swallowing the sun. Aryabhata in India and Anaxagoras in Greece explained eclipses long ago, but school teaching did not carry it into homes. (≈0:30:33–0:36:40) Compare [[Fear sells on television]].",
+   "created": 1762800010000,
+   "updated": 1762800010000
+  },
+  {
+   "id": "phs-12",
+   "topic": "ph-science",
+   "title": "Cognitive revolution and old fears",
+   "text": "He says we are made of old illogical habits: thinking began about 70,000 years ago and scientific method is only about 500 years old, so much of our culture carries pre-scientific instincts. Figures are as he states them. (≈0:30:33–0:32:33) See [[Why people feared eclipses]].",
+   "created": 1762800011000,
+   "updated": 1762800011000
+  },
+  {
+   "id": "phs-13",
+   "topic": "ph-science",
+   "title": "Fear sells on television",
+   "text": "He says each society creates fears according to its knowledge: pregnant women once died often in childbirth, so eclipse rules grew. TV channels, he argues, keep fear alive because fear sells, and he gives insurance advertising as a comparison. (≈0:36:40–0:42:52) See [[Why fear beats reason]].",
+   "created": 1762800012000,
+   "updated": 1762800012000
+  },
+  {
+   "id": "phs-14",
+   "topic": "ph-science",
+   "title": "Is not believing in God also superstition",
+   "text": "He says claiming certainty that there is no God is blind disbelief. Believers have never proved it, but neither is it proved that God does not exist. A court that fails to prove theft does not prove innocence either. (≈0:40:49–0:44:53) Next: [[Einstein, Newton and the claim to know]].",
+   "created": 1762800013000,
+   "updated": 1762800013000
+  },
+  {
+   "id": "phs-15",
+   "topic": "ph-science",
+   "title": "Einstein, Newton and the claim to know",
+   "text": "Einstein resisted quantum randomness with 'God does not gamble'; Newton and Kepler believed in God. The speaker says believe or not, but do not claim to know, because we know less than one percent of the universe. (≈0:44:53–0:48:55)",
+   "created": 1762800014000,
+   "updated": 1762800014000
+  },
+  {
+   "id": "phs-16",
+   "topic": "ph-science",
+   "title": "What a ghost is",
+   "text": "If a ghost is a dead person's soul, he asks what soul means. Energy, air and current are all physical, while consciousness is not; the link between body and consciousness was a long puzzle in Western philosophy. (≈0:48:55–0:52:59) Next: [[Brain science of possession]].",
+   "created": 1762800015000,
+   "updated": 1762800015000
+  },
+  {
+   "id": "phs-17",
+   "topic": "ph-science",
+   "title": "Brain science of possession",
+   "text": "Neuroscience, by EEG and functional MRI, shows emotions and thoughts arise in the brain, not the heart. He says people who feel possessed have dissociative disorder or trance and should see a psychiatrist; those who profit from exorcism are lying. (≈0:52:59–1:01:09) See [[Trance and hypnosis]].",
+   "created": 1762800016000,
+   "updated": 1762800016000
+  },
+  {
+   "id": "phs-18",
+   "topic": "ph-science",
+   "title": "Trance and hypnosis",
+   "text": "In kirtan or chanting, critical thinking drops, a person accepts suggestions and feels peace. Misused it is hypnotism; used well it is hypnotherapy. Ghost beliefs are learned from childhood. (≈0:57:04–1:01:09) Compare [[Placebo, nocebo and belief]].",
+   "created": 1762800017000,
+   "updated": 1762800017000
+  },
+  {
+   "id": "phs-19",
+   "topic": "ph-science",
+   "title": "Placebo, nocebo and belief",
+   "text": "Placebo helps because the patient believes, nocebo harms because they distrust. Trials compare real medicine against a placebo to filter this out. The speaker applies this to healing shrines. (≈1:15:37–1:19:39) Next: [[Why shrines seem to heal]].",
+   "created": 1762800018000,
+   "updated": 1762800018000
+  },
+  {
+   "id": "phs-20",
+   "topic": "ph-science",
+   "title": "Why shrines seem to heal",
+   "text": "Sudhir Kakar's Shamans, Mystics and Doctors is cited as saying healing places work through belief, catharsis, trance and hypnosis; relief is temporary and goes back to doctors. He treats such practices as cultural medicine, not to be dismissed in whole. The title in the transcript is garbled. (≈1:13:30–1:23:45)",
+   "created": 1762800019000,
+   "updated": 1762800019000
+  },
+  {
+   "id": "phs-21",
+   "topic": "ph-science",
+   "title": "Why fear beats reason",
+   "text": "Fear and anger quiet the brain's logical parts. The speaker says ancient fear explains why someone who sees a snake kills it without arguing. (≈1:07:22–1:09:24) Compare [[Witch hunts: why Diane is killed]].",
+   "created": 1762800020000,
+   "updated": 1762800020000
+  },
+  {
+   "id": "phs-22",
+   "topic": "ph-science",
+   "title": "Witch hunts: why Diane is killed",
+   "text": "Asked about a family in Bihar killed on suspicion of witchcraft, he says uneducated villagers look for a cause when children die from dengue or platelet loss and blame a woman; fear and a false cause lead to killing, mostly of women. (≈1:01:09–1:07:22) See [[Why fear beats reason]].",
+   "created": 1762800021000,
+   "updated": 1762800021000
+  },
+  {
+   "id": "phs-23",
+   "topic": "ph-science",
+   "title": "Fiction and responsibility",
+   "text": "He says freedom of expression does not mean anything goes: films that mock vulnerable groups or push children to jump from roofs imitating a hero deserve control and clear disclaimers. (≈1:09:24–1:13:30)",
+   "created": 1762800022000,
+   "updated": 1762800022000
+  },
+  {
+   "id": "phs-24",
+   "topic": "ph-science",
+   "title": "Rituals and false cause",
+   "text": "Sachin Tendulkar's shirt number or a cricketer's bottle order work only through confidence. He says people mistake correlation for cause, like thinking the rooster's call makes the sun rise. (≈1:23:45–1:29:51) Compare [[Magic is not a miracle]].",
+   "created": 1762800023000,
+   "updated": 1762800023000
+  },
+  {
+   "id": "phs-25",
+   "topic": "ph-science",
+   "title": "Spirituality and mystical experience",
+   "text": "Spirituality in the Indian sense is union with Brahman; Islam calls such a claim sin except for Sufis' 'Anal Haq'. William James, Freud, Jung and Maslow wrote about it as an ocean feeling. He says it is a real experience. (≈1:29:51–1:35:58) Next: [[The parietal lobe and the self]].",
+   "created": 1762800024000,
+   "updated": 1762800024000
+  },
+  {
+   "id": "phs-26",
+   "topic": "ph-science",
+   "title": "The parietal lobe and the self",
+   "text": "A baby does not have a sense of self for the first months. Studies suggest that during mystical experiences the parietal lobe becomes passive, so the boundary of self fades. The speaker says this explains the experience of oneness without proving Brahman. Sleep paralysis is linked to Freud's idea of womb memory. (≈1:35:58–1:40:05)",
+   "created": 1762800025000,
+   "updated": 1762800025000
+  },
+  {
+   "id": "phs-27",
+   "topic": "ph-science",
+   "title": "Kabir, Ramana and oneness",
+   "text": "Kabir, Nanak, Ramakrishna, Raman Maharshi and Plotinus all wrote of union. Jung treated God as a psychological fact. The speaker is open about the experience and sceptical of using it to know the universe. (≈1:40:05–1:42:07) See [[Spirituality and mystical experience]].",
+   "created": 1762800026000,
+   "updated": 1762800026000
+  },
+  {
+   "id": "phs-28",
+   "topic": "ph-science",
+   "title": "Prayer and fasting: the benefits",
+   "text": "Prayer builds self-confidence, humility and calm; psalms, he says, release calming chemicals. Fasting helps digestion and, as he says, a Japanese scientist won a Nobel for work on autophagy during 72-hour fasts. God will not hand you results, but confidence helps. (≈1:42:07–1:46:11)",
+   "created": 1762800027000,
+   "updated": 1762800027000
+  },
+  {
+   "id": "phs-29",
+   "topic": "ph-science",
+   "title": "What religion actually is",
+   "text": "No final definition, but religion is a package: ideas about the world and soul, emotional security, rituals, social harmony and morals. Science cannot replace all of it. (≈1:46:11–1:48:16) Compare [[Stories that unite millions]].",
+   "created": 1762800028000,
+   "updated": 1762800028000
+  },
+  {
+   "id": "phs-30",
+   "topic": "ph-science",
+   "title": "Myths and sacred places",
+   "text": "Folk beliefs such as Kumbh, or the sacred place where Guru Gobind Singh was born, give people a sense of holiness, and do not harm unless they cause damage. He cites Paul Tillich. (≈1:48:16–1:52:18) Next: [[Stories that unite millions]].",
+   "created": 1762800029000,
+   "updated": 1762800029000
+  },
+  {
+   "id": "phs-31",
+   "topic": "ph-science",
+   "title": "Stories that unite millions",
+   "text": "From Harari: no other species gathers beyond about 150 individuals, but humans unite by shared stories, such as religion, nation and money. He says respect harmless beliefs and amend harmful ones. (≈1:50:16–1:54:19)",
+   "created": 1762800030000,
+   "updated": 1762800030000
+  },
+  {
+   "id": "phs-32",
+   "topic": "ph-science",
+   "title": "Luck, fate and free will",
+   "text": "Maybe we are video game characters, he says, but we cannot refute this. Compatibilism holds that we feel free. Focus on what you control; those who do improve their lives, so luck's role is limited. (≈1:54:19–1:56:23)",
+   "created": 1762800031000,
+   "updated": 1762800031000
+  },
+  {
+   "id": "phs-33",
+   "topic": "ph-science",
+   "title": "Science in Indian philosophy",
+   "text": "Philosophers seek truth by logic, scientists by experiment, devotees by relationship. He describes a school that accepted only direct evidence (the Charvaka, by implication) as scientific in part, Buddhists reject a soul yet accept rebirth, Jains and Nyaya had atomism, and Samkhya's gunas work like psychology. (≈1:56:23–2:00:29) Compare [[Three ways to meet the ultimate]].",
+   "created": 1762800032000,
+   "updated": 1762800032000
+  },
+  {
+   "id": "phs-34",
+   "topic": "ph-science",
+   "title": "Three ways to meet the ultimate",
+   "text": "The seeker either researches, uses logic, or just builds a relationship. He says magic and religion both grew from the wish to control or please the unseen, while science and philosophy wish to know. (≈1:56:23–1:58:28)",
+   "created": 1762800033000,
+   "updated": 1762800033000
+  },
+  {
+   "id": "phs-35",
+   "topic": "ph-science",
+   "title": "Magic is not a miracle",
+   "text": "If the performer says it is hand skill, it is magic; if he says it is divine, it is a miracle. He says that he knows tricks and that nobody can read your mind or open your phone password. (≈2:00:29–2:04:32) Next: [[Miracles end where explanation starts]].",
+   "created": 1762800034000,
+   "updated": 1762800034000
+  },
+  {
+   "id": "phs-36",
+   "topic": "ph-science",
+   "title": "Miracles end where explanation starts",
+   "text": "Eclipses, rainbows, hot springs, dreams and the Narcissus mirror myth were all once miracles; science explained them. He does not believe in miracles, only in phenomena not yet explained. (≈2:04:32–2:06:33)",
+   "created": 1762800035000,
+   "updated": 1762800035000
+  },
+  {
+   "id": "phs-37",
+   "topic": "ph-science",
+   "title": "Telepathy and intuition",
+   "text": "A mother senses her child is ill because her unconscious mind uses past data to reason. A test such as guessing the shirt colour shows chance-level results. Parapsychology's ESP has never been proven under test conditions. (≈2:06:33–2:16:41) Next: [[Brain chips and engineered telepathy]].",
+   "created": 1762800036000,
+   "updated": 1762800036000
+  },
+  {
+   "id": "phs-38",
+   "topic": "ph-science",
+   "title": "Brain chips and engineered telepathy",
+   "text": "He describes a 2014 experiment where a signal from a person's brain in India went through computers to a person's brain in France, and says chips could make telepathy real in a few years, as a machine effect and not a mind power. He gives it from memory. (≈2:16:41–2:20:43)",
+   "created": 1762800037000,
+   "updated": 1762800037000
+  },
+  {
+   "id": "phs-39",
+   "topic": "ph-science",
+   "title": "Parents and superstition",
+   "text": "Parents who never studied science believe in eclipse rules; they need training. Religious teachers also need systematic training consistent with modern knowledge. (≈2:20:43–2:22:48) See [[Babas as start-ups]].",
+   "created": 1762800038000,
+   "updated": 1762800038000
+  },
+  {
+   "id": "phs-40",
+   "topic": "ph-science",
+   "title": "Babas as start-ups",
+   "text": "Questions to any authority are healthy in a democracy. Babas have rights under Articles 19 and 25 to run institutions; talkers and storytellers do well on social media. (≈2:20:43–2:24:50)",
+   "created": 1762800039000,
+   "updated": 1762800039000
+  },
+  {
+   "id": "phs-41",
+   "topic": "ph-science",
+   "title": "Reading science builds temper",
+   "text": "You can develop scientific temper by studying any subject properly, including history, sociology and anthropology. Studying only lab science does not suffice, as Nazi scientists show. (≈2:24:50–2:28:55)",
+   "created": 1762800040000,
+   "updated": 1762800040000
+  },
+  {
+   "id": "phs-42",
+   "topic": "ph-science",
+   "title": "Is religion needed for morality",
+   "text": "Religion offers an external watcher and so supports morality, but also teaches discrimination and rigid rules. Secular ethics are flexible; religions should modify themselves. (≈2:28:55–2:33:00)",
+   "created": 1762800041000,
+   "updated": 1762800041000
+  },
+  {
+   "id": "phs-43",
+   "topic": "ph-science",
+   "title": "Why science loses to caste",
+   "text": "Science tells us a daughter's sex depends on the father but ideas of purity persist because science stays in books. Schools need teachers with scientific temper; ghost belief is under 5 percent in some educated countries and 50 to 80 percent in India by Pew, as he says. (≈2:33:00–2:37:13) See [[Parents and superstition]].",
+   "created": 1762800042000,
+   "updated": 1762800042000
+  },
+  {
+   "id": "phs-44",
+   "topic": "ph-science",
+   "title": "Is teaching rituals brainwashing",
+   "text": "A young child cannot be brainwashed; teaching is socialisation, with both good and bad inherited. The state can limit religious schooling and teach tolerance. (≈2:37:13–2:43:20)",
+   "created": 1762800043000,
+   "updated": 1762800043000
+  },
+  {
+   "id": "phs-45",
+   "topic": "ph-science",
+   "title": "Kibbutz and child-rearing",
+   "text": "He explains the Israeli kibbutz idea: communal child-rearing frees mothers and children were developed, but it raised questions. Parents still have the right to pass on culture. (≈2:41:18–2:45:23) Compare [[Is teaching rituals brainwashing]].",
+   "created": 1762800044000,
+   "updated": 1762800044000
+  },
+  {
+   "id": "phs-46",
+   "topic": "ph-science",
+   "title": "Superstition in the age of AI",
+   "text": "Superstitions will not vanish; new ones will appear. He shows how smart glasses with AI could identify strangers and make cold reading look like mind reading, so deception grows for those without technology. (≈2:45:23–2:51:35) See [[Magic is not a miracle]].",
+   "created": 1762800045000,
+   "updated": 1762800045000
+  },
+  {
+   "id": "phs-47",
+   "topic": "ph-science",
+   "title": "Wi-Fi sensing and privacy",
+   "text": "Wi-Fi signals can sense a person's position without a camera, so supposed mind-reading can be technology. He tells people not to fear: no one can touch your mind. (≈2:49:35–2:53:38)",
+   "created": 1762800046000,
+   "updated": 1762800046000
+  },
+  {
+   "id": "phs-48",
+   "topic": "ph-science",
+   "title": "Can science and religion coexist",
+   "text": "Scientists work until proven wrong and avoid talk of God; religion should stay in emotion, morality and spiritual experience, not claims about the universe. Religion must modify itself to survive. (≈2:51:35–2:55:42)",
+   "created": 1762800047000,
+   "updated": 1762800047000
+  }
+ ],
+ "bridges": [],
+ "dismissed": [],
+ "cols": [],
+ "gone": {}
+}
