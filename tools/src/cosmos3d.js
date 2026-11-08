@@ -1679,7 +1679,7 @@ export function mount(root, opts) {
     ideas: { label: "Founders & ideas", rels: ["FOUNDED", "HOLDS", "INFLUENCES", "EXPLAINS"] },
     debate: { label: "Debates", rels: ["CRITIQUES", "REJECTS", "CONTRASTS"] },
   };
-  const L = { focus: null, chain: "all", back: [], more: new Set(), pick: false, view: { x: 0, y: 0, k: 1 }, off: {}, suppress: false };
+  const L = { focus: null, chain: "all", back: [], more: new Set(), pick: false, view: { x: 0, y: 0, k: 1 }, off: {}, size: {}, suppress: false };
   const canvasOn = () => root.clientWidth >= 900;
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const clip = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
@@ -1702,7 +1702,8 @@ export function mount(root, opts) {
     return `<div class="lcard" data-lgo="${esc(id)}" data-rel="${rel}" role="button" tabindex="0"><span class="lport"></span>
       <div class="lc-t">${dot(n.k)}<b>${esc(clip(n.l, 60))}</b>${bn ? `<small${n.bn ? ' lang="bn"' : ""}>${esc(bn)}</small>` : ""}</div>
       <div class="lc-s">${esc(n.sub || KIND[n.k]?.label.replace(/s$/, "") || "")}</div>
-      ${n.d && n.k !== "day" ? `<p>${esc(clip(n.d, 120))}</p>` : ""}
+      ${n.d && n.k !== "day" ? `<p>${esc(n.text ? String(n.text).replace(/\[\[([^\]]+)\]\]/g, "$1").replace(/\s+/g, " ").trim().slice(0, 1500) : clip(n.d, 400))}</p>` : ""}
+      <span class="lc-rs" title="Drag to resize. Double-click to show all the text." aria-hidden="true"></span>
       </div>`;
   };
   function linCol(groups, side) {
@@ -1743,8 +1744,10 @@ export function mount(root, opts) {
     st.querySelectorAll(".lcard,.lfocus").forEach((c) => {
       const o = L.off[c.classList.contains("lfocus") ? "mid" : c.dataset.lgo + "|" + c.dataset.rel];
       c.style.transform = on && o ? `translate(${o[0]}px, ${o[1]}px)` : "";
+      if (c.classList.contains("lcard")) { const z = L.size[c.dataset.lgo + "|" + c.dataset.rel]; if (z) linSize(c, z); }
     });
   }
+  function linSize(c, z) { c.classList.add("sized"); c.style.height = z[1] + "px"; if (canvasOn()) c.style.width = z[0] + "px"; }
   function linDraw() {
     const body = $("#gcLinBody"), st = $("#gcLinStage"), svg = $("#gcLinSvg"), mid = $("#gcLinFocus"); if (!body || !st || !svg || !mid || $("#gcLin").hidden) return;
     if (!canvasOn()) { svg.innerHTML = ""; return; }
@@ -1782,7 +1785,28 @@ export function mount(root, opts) {
     const v = L.view; v.k = Math.min(1, Math.max(0.25, Math.min(vw / w, vh / h)));
     v.x = (vw - (x1 - x0) * v.k) / 2 - x0 * v.k; v.y = Math.max(8, (vh - (y1 - y0) * v.k) / 2) - y0 * v.k + (vh - (y1 - y0) * v.k) / 2 * 0; linApply(); linDraw();
   }
-  function linReset() { L.view = { x: 0, y: 0, k: 1 }; L.off = {}; linApply(); linDraw(); }
+  function linReset() { L.view = { x: 0, y: 0, k: 1 }; L.off = {}; L.size = {}; $("#gcLinStage")?.querySelectorAll(".lcard.sized").forEach((c) => { c.classList.remove("sized"); c.style.width = c.style.height = ""; }); linApply(); linDraw(); }
+  // resize a card: drag its corner to see more of the text; double-click to open it fully
+  (() => {
+    const lin = $("#gcLin"); let rs = null;
+    lin.addEventListener("pointerdown", (e) => {
+      const h = e.target.closest?.(".lc-rs"); if (!h || e.button > 0) return;
+      e.stopPropagation(); e.preventDefault(); const c = h.closest(".lcard"); try { h.setPointerCapture(e.pointerId); } catch (er) {}
+      rs = { id: e.pointerId, c, x: e.clientX, y: e.clientY, w: c.offsetWidth, h: c.offsetHeight, key: c.dataset.lgo + "|" + c.dataset.rel }; c.classList.add("resizing");
+    }, true);
+    lin.addEventListener("pointermove", (e) => {
+      if (!rs || e.pointerId !== rs.id) return; e.stopPropagation();
+      const k = canvasOn() ? L.view.k : 1, w = Math.max(190, rs.w + (e.clientX - rs.x) / k), hh = Math.max(64, rs.h + (e.clientY - rs.y) / k);
+      L.size[rs.key] = [Math.round(w), Math.round(hh)]; linSize(rs.c, L.size[rs.key]); linDraw();
+    }, true);
+    const done = (e) => { if (rs && e.pointerId === rs.id) { rs.c.classList.remove("resizing"); L.suppress = true; setTimeout(() => (L.suppress = false), 80); rs = null; linDraw(); } };
+    lin.addEventListener("pointerup", done, true); lin.addEventListener("pointercancel", done, true);
+    lin.addEventListener("click", (e) => { if (e.target.closest?.(".lc-rs")) { e.stopPropagation(); e.preventDefault(); } }, true);
+    lin.addEventListener("dblclick", (e) => {
+      const h = e.target.closest?.(".lc-rs"); if (!h) return; e.stopPropagation(); const c = h.closest(".lcard"), key = c.dataset.lgo + "|" + c.dataset.rel;
+      c.classList.add("sized"); c.style.height = "auto"; const w = c.offsetWidth, hh = c.offsetHeight; L.size[key] = [w, hh]; linSize(c, L.size[key]); linDraw();
+    }, true);
+  })();
   // pan the background, drag any card, wheel / pinch to zoom
   (() => {
     const lin = $("#gcLin"), ptrs = new Map(); let drag = null, pinch = 0;
@@ -1819,7 +1843,7 @@ export function mount(root, opts) {
   function linFocus(id, { push = true } = {}) {
     if (!raw.has(id) || id === L.focus) { L.pick = false; renderLineage(); return; }
     if (push && L.focus) L.back.push(L.focus);
-    L.focus = id; L.pick = false; L.more.clear(); L.off = {}; L.view = { x: 0, y: 0, k: 1 };
+    L.focus = id; L.pick = false; L.more.clear(); L.off = {}; L.size = {}; L.view = { x: 0, y: 0, k: 1 };
     if (S.selected) { S.selected = id; renderInspector(); }
     linUrl(); renderLineage();
     

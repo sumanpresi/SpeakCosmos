@@ -562,3 +562,10 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
  .gc-right{flex:none}.gc-top{gap:8px}
 }
 @media (max-width:1100px){.gc-nav button.on span{display:none}.gc-search{width:120px}.gc-btn span{display:none}.gc-btn{padding:0 9px}}
+
+/* cards can be resized: drag the corner to read more, double-click for all of it */
+.lc-rs{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;opacity:.45;border-radius:4px;background:linear-gradient(135deg,transparent 50%,var(--text3) 50%,var(--text3) 58%,transparent 58%,transparent 72%,var(--text3) 72%,var(--text3) 80%,transparent 80%)}
+.lcard:hover .lc-rs,.lc-rs:hover,.lcard.resizing .lc-rs{opacity:1}
+.lcard.sized{display:flex;flex-direction:column;overflow:hidden;max-width:none;padding-bottom:18px}
+.lcard.sized p{display:block;-webkit-line-clamp:unset;line-clamp:unset;flex:1 1 auto;min-height:0;overflow:hidden}
+.lcard.resizing{box-shadow:0 8px 24px rgba(60,40,10,.2);transition:none}
