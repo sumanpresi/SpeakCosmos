@@ -227,7 +227,7 @@ export function mount(root, opts) {
   const inScope = (n) => !SS || SS.has(topicOf(n));
   const islandOf = new Map();
   const islandR = new Map();
-  const splitOn = () => !S.scope && S.split && S.lens === "explore";
+  const splitOn = () => (S.focus ? !S.scope : !S.scope && S.split && S.lens === "explore");
   function layoutIslands(list) {
     islandOf.clear(); islandR.clear();
     const rad = new Map(list.map((t) => [t, 40]));
@@ -237,7 +237,7 @@ export function mount(root, opts) {
     list.forEach((t, i) => { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); islandR.set(t, rs[i]); });
   }
   const posOf = (n) => {
-    if (!S.scope) { if (!splitOn()) return n.p; if (!islandOf.size) layoutIslands([...new Set(allNodes.map(topicOf))].filter((t) => topicInfo(t))); }
+    if (!S.scope) { if (!splitOn()) return n.p; if (!islandOf.size) layoutIslands(S.focus ? S.focus.topics.filter((t) => topicInfo(t)) : [...new Set(allNodes.map(topicOf))].filter((t) => topicInfo(t))); }
     const q = n.q || n.p, o = islandOf.get(topicOf(n)); return o && (S.scope || splitOn()) ? [q[0] + o[0], q[1] + o[1], q[2] + o[2]] : (S.scope ? q : n.p);
   };
   function scopeChanged() {
@@ -245,7 +245,7 @@ export function mount(root, opts) {
     const st = !c ? scopeTopics(S.scope) : null;
     SS = S.scope == null ? null : c ? new Set(c.topics) : st ? new Set(st) : new Set([S.scope]);
     islandOf.clear(); islandR.clear();
-    if (c) layoutIslands(c.topics); else if (st) layoutIslands(st);
+    if (c) layoutIslands(c.topics); else if (st) layoutIslands(st); else if (S.focus && !S.scope) layoutIslands(S.focus.topics.filter((t) => topicInfo(t)));
     if (circle) circle.visible = (!S.scope && !splitOn()) || S.scope === "eng" || S.scope === "phil";
   }
   const resolveTitle = (t) => labelIndex.get(norm(t)) ?? null;
@@ -359,7 +359,7 @@ export function mount(root, opts) {
   const S = {
     dark: prefersDark, colorBy: "kind", hidden: new Set(), edgeGroups: { structure: true, curated: true, lexical: true },
     mode: "focus", depth: 1, selected: null, hover: null, highlight: null, autoRotate: !matchMedia("(prefers-reduced-motion: reduce)").matches,
-    tool: null, legend: root.clientWidth >= 720, query: "", lens: "explore", scope: null, split: true, bridgeOnly: false, pr: 2,
+    tool: null, legend: root.clientWidth >= 720, query: "", lens: "explore", scope: null, split: true, focus: null, bridgeOnly: false, pr: 2,
   };
   const coarse = matchMedia("(pointer: coarse)").matches;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -502,7 +502,8 @@ export function mount(root, opts) {
   function compute() {
     const vk = visibleKinds();
     const nodes = [];
-    for (const n of allNodes) { if (n.k === "core" ? (!SS || SS.has("eng")) : vk.has(n.k) && inScope(n)) nodes.push(gnode(n)); }
+    const fk = S.focus;
+    for (const n of allNodes) { if (fk && !(fk.keep.has(n.id) || (n.k === "hub" && fk.hubs.has(n.id)))) continue; if (n.k === "core" ? (!SS || SS.has("eng")) : vk.has(n.k) && inScope(n)) nodes.push(gnode(n)); }
     const shown = new Set(nodes.map((n) => n.id));
     const egoId = S.mode === "focus" && S.selected && !S.highlight && shown.has(S.selected) ? S.selected : null;
     if (egoId) {
@@ -993,12 +994,14 @@ export function mount(root, opts) {
   // ── focus bar ─────────────────────────────────────────────────────────────────────────────────────────────
   function renderFocusBar() {
     const el = $("#gcFocus"); el.hidden = false; el.dataset.state = S.highlight ? "hl" : S.selected ? "sel" : "none";
+    const fb = focusBtns();
     const seg = (on) => `<div class="seg"><button data-mode="focus" class="${on === "focus" ? "on" : ""}">Focus</button><button data-mode="whole" class="${on === "whole" ? "on" : ""}">Whole graph</button></div>`;
     if (S.highlight) {
       const n = S.highlight.nodes.size, isAsk = !!S.highlight.ask;
-      el.innerHTML = `<span class="gcbar-lab"><b>${isAsk ? "Answer" : "Path"}</b><span class="count">${n} ${isAsk ? "points lit" : "points on the route"}</span></span><button class="gcbtn" data-hl-clear>Clear</button>`;
+      el.innerHTML = `<span class="gcbar-lab"><b>${isAsk ? "Answer" : "Path"}</b><span class="count">${n} ${isAsk ? "points lit" : "points on the route"}</span></span><button class="gcbtn" data-hl-clear>Clear</button>${fb}`;
       return;
     }
+    if (!S.selected && S.focus) { el.innerHTML = `<span class="gcbar-lab"><b>${esc(S.focus.label)}</b><span class="count">${S.focus.keep.size} ideas · ${S.focus.topics.length} topics · click one to see where it is shared</span></span>${fb}`; return; }
     if (!S.selected) {
       el.innerHTML = `<span class="gcbar-lab"><b>${esc(scopeLabel())}</b><span class="count">${scopeCount().toLocaleString()} points${cur.trimmed ? ` · showing the ${cur.trimmed.shown.toLocaleString()} best connected` : ""} · click one to focus</span></span>${!S.scope && S.lens === "explore" ? `<button class="gcbtn ghost sm" data-act="toggle-split" title="Show each topic as its own cluster, or all blended together">${S.split ? "Blend clusters" : "Separate clusters"}</button>` : ""}${colOf(S.scope) ? `<div class="seg"><button data-bridge="0" class="${S.bridgeOnly ? "" : "on"}">All points</button><button data-bridge="1" class="${S.bridgeOnly ? "on" : ""}">Bridges only</button></div>` : ""}${seg("whole")}`;
       return;
@@ -1006,7 +1009,7 @@ export function mount(root, opts) {
     const n = raw.get(S.selected), ego = cur.ego, c = deg(S.selected);
     el.innerHTML = `<span class="gcbar-lab">${dot(n.k)}<b title="${esc(n.l)}">${esc(n.l)}</b><span class="count">${c} connection${c === 1 ? "" : "s"}</span></span>${seg(S.mode)}
       ${S.mode === "focus" ? `<div class="seg"><button data-depth="1" class="${S.depth === 1 ? "on" : ""}">1 hop</button><button data-depth="2" class="${S.depth === 2 ? "on" : ""}">2 hops</button></div>` : ""}
-      ${ego && S.mode === "focus" ? `<span class="count">${ego.count} of ${ego.pick.total}${S.depth > 1 ? "+" : ""} shown</span>` : ""}`;
+      ${ego && S.mode === "focus" ? `<span class="count">${ego.count} of ${ego.pick.total}${S.depth > 1 ? "+" : ""} shown</span>` : ""}${fb}`;
   }
 
   // ── legend (also the filter) ──────────────────────────────────────────────────────────────────────────────
@@ -1317,6 +1320,7 @@ export function mount(root, opts) {
   // ── Lineage: one idea in the middle, what leads to it on the left, what it leads to on the right ─────────
   const CHAINS = {
     all: { label: "All connections", rels: null },
+    cross: { label: "Across topics only", rels: null, cross: true },
     path: { label: "Learning path", rels: ["NEXT_SKILL", "NEXT_LESSON", "COVERS", "BELONGS_TO"] },
     course: { label: "100-day course", rels: ["NEXT_DAY", "TEACHES", "PREPARES"] },
     practice: { label: "Practice", rels: ["PRACTISES", "USES", "TRAINS"] },
@@ -1335,6 +1339,7 @@ export function mount(root, opts) {
     for (const a of adj.get(id) ?? []) {
       if (raw.get(a.other)?.k === "core") continue;
       if (ok && !ok.includes(a.e.rel)) continue;
+      if (CHAINS[L.chain].cross && (topicOf(raw.get(a.other)) === topicOf(raw.get(id)) || REL[a.e.rel].group === "structure")) continue;
       const side = a.out ? "right" : "left", key = a.e.rel;
       g[side].set(key, [...(g[side].get(key) ?? []), a.other]);
     }
@@ -1759,8 +1764,49 @@ export function mount(root, opts) {
     if (n.k === "core") return "";
     if (n.k === "hub" && n.user) return `<div class="actions"><button class="gcbtn primary" data-act="new-note" data-topic="${esc(n.hubOf)}">+ Note here</button><button class="gcbtn" data-act="import-into" data-id="${esc(n.hubOf)}">Paste or upload text</button><button class="gcbtn ghost" data-act="edit-topic" data-id="${esc(n.hubOf)}">Edit topic</button></div>`;
     if (n.k === "hub") return "";
-    return `<div class="actions plat"><button class="gcbtn" data-act="relate" data-id="${esc(n.id)}">✦ Find related in other topics</button><button class="gcbtn ghost" data-act="note-about" data-id="${esc(n.id)}">+ Note about this</button></div>`;
+    return `<div class="actions plat"><button class="gcbtn" data-act="relate" data-id="${esc(n.id)}">✦ Find related in other topics</button><button class="gcbtn" data-act="focus-idea" data-id="${esc(n.id)}" title="Show only where this idea is shared between topics and subtopics">◎ Focus where it is shared</button><button class="gcbtn ghost" data-act="note-about" data-id="${esc(n.id)}">+ Note about this</button></div>`;
   };
+  // ── focus on what is connected between topics and subtopics ────────────────────────────────────────────────
+  const plain = (n) => n && n.k !== "hub" && n.k !== "core" && n.k !== "point" && n.k !== "day";
+  function setFocus(f) {
+    const keep = new Set([...f.nodes].filter((id) => raw.has(id)));
+    if (f.nbrs) for (const id of [...keep]) for (const a of adj.get(id) ?? []) { const o = raw.get(a.other); if (o && plain(o) && a.e.group !== "structure" && topicOf(o) === topicOf(raw.get(id))) keep.add(a.other); }
+    const hubs = new Set(); for (const id of keep) { const g = raw.get(id)?.g; if (g && raw.get(g)?.k === "hub") hubs.add(g); }
+    if (keep.size < 2) { toast("Nothing connected to focus on yet. Use Auto-link or Link, then try again."); return false; }
+    f.keep = keep; f.hubs = hubs; f.topics = [...new Set([...keep].map((id) => topicOf(raw.get(id))))].filter((t) => topicInfo(t));
+    if (!S.focus) f.prevMode = S.mode; else f.prevMode = S.focus.prevMode;
+    S.focus = f; S.scope = null; S.mode = "whole"; S.highlight = null; S.hover = null; S.selected = f.idea && keep.has(f.idea) ? f.idea : null;
+    if (S.lens !== "explore") setLens("explore");
+    islandOf.clear(); scopeChanged(); syncTabs(); renderEmpty(); apply({ frame: true }); renderInspector(); wake(1500); setSpin(false);
+    setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, reduceMotion ? 0 : 800), 150);
+    return true;
+  }
+  window.__scFocusIdea = (label) => { const n = allNodes.find((x) => plain(x) && x.l === label); if (n) { select(n.id); focusIdea(n.id); } return !!S.focus; }; window.__scState = () => ({ focus: S.focus && S.focus.keep.size, lens: S.lens, chain: L.chain, lf: L.focus });
+  function clearFocus() {
+    if (!S.focus) return; S.mode = S.focus.prevMode || "focus"; S.focus = null; S.selected = null; islandOf.clear(); scopeChanged(); syncTabs();
+    apply({ frame: true }); renderInspector(); wake(1200); setTimeout(() => camCmd("fit"), 120);
+  }
+  const crossEdgeNodes = (T) => { const out = new Set(); for (const e of edges) { if (e.group === "structure" || e.rel === "BELONGS_TO") continue; const a = raw.get(e.s), b = raw.get(e.t); if (!plain(a) || !plain(b)) continue; const ta = topicOf(a), tb = topicOf(b); if (ta !== tb && (!T || (T.has(ta) && T.has(tb)))) { out.add(e.s); out.add(e.t); } } return out; };
+  function focusConnected(fromResults) {
+    let nodes = new Set(), T = null, label = "Connected ideas";
+    if (fromResults && CN.res?.length) { for (const r of CN.res) { nodes.add(r.a); nodes.add(r.b); } T = new Set([...nodes].map((id) => topicOf(raw.get(id)))); label = (CN.mode === "contradict" ? "Contradictions" : "Similar ideas") + " between " + [...T].map((t) => topicInfo(t)?.label).filter(Boolean).slice(0, 3).join(" × "); }
+    else if (CN.cmp) { const c = CN.cmp; T = new Set(c.topics.map((t) => t.id)); for (const r of [...c.sim.slice(0, 30), ...c.con.slice(0, 20)]) { nodes.add(r.a); nodes.add(r.b); } label = "Connected ideas: " + c.topics.map((t) => t.label).slice(0, 3).join(" × "); }
+    for (const id of crossEdgeNodes(T)) nodes.add(id);
+    if (setFocus({ label, nodes })) { if (S.tool === "conn") showPop("conn"); toast(`Showing only the ${S.focus.keep.size} connected ideas. Esc or “Exit focus” goes back.`, 5200); }
+  }
+  // one idea that appears in several topics or subtopics: same title, a link between them, or a close match
+  function focusIdea(id) {
+    const n = raw.get(id); if (!n || !plain(n)) return toast("Pick an idea first.");
+    const T = topicOf(n), group = new Set([id]);
+    for (const x of allNodes) if (x.id !== id && plain(x) && topicOf(x) !== T && norm(x.l) === norm(n.l)) group.add(x.id);
+    const frontier = [id];
+    for (let d = 0; d < 2; d++) for (const f of frontier.splice(0)) for (const a of adj.get(f) ?? []) { const o = raw.get(a.other); if (!plain(o) || a.e.group === "structure" || topicOf(o) === topicOf(raw.get(f)) || group.size > 60 || group.has(a.other)) continue; group.add(a.other); frontier.push(a.other); }
+    try { const { items, links } = connInputs(); for (const r of suggest(items, links, { limit: 8, only: id, skip: new Set() })) group.add(r.a === id ? r.b : r.a); } catch (e) {}
+    const topics = new Set([...group].map((g) => topicOf(raw.get(g))));
+    if (group.size < 2 || topics.size < 2) return toast("This idea is not shared with another topic yet. Use “Find related in other topics” to look for matches.");
+    if (setFocus({ label: "“" + clip(n.l, 28) + "” across topics", nodes: group, idea: id })) toast(`Shared by ${topics.size} topics. Use Lineage to follow it, Esc to leave.`, 5200);
+  }
+  const focusBtns = () => S.focus ? `<button class="gcbtn" data-act="focus-nbrs" title="Also show each idea's neighbours inside its own topic">${S.focus.nbrs ? "Hide" : "Show"} neighbours</button><button class="gcbtn" data-act="focus-lineage" title="Follow this idea as a lineage, across topics only">Lineage</button><button class="gcbtn primary" data-act="focus-exit">Exit focus</button>` : "";
   // ── Bhagavad Gita reader (from Gita Lessons / GitaViśva) ──────────────────────────────────────────────────
   async function fillGita(el) {
     const box = el.querySelector("[data-gvslot]"); if (!box) return;
@@ -1932,7 +1978,7 @@ export function mount(root, opts) {
       const cards = CN.busy ? '<p class="sub">Looking…</p>' : CN.res ? (CN.res.length ? CN.res.map((r, i) => `<div class="cn-card ${r.ai?.verdict === "unrelated" ? "dim" : ""}" data-i="${i}"><div class="cn-pair">${chip(r.a)}<span class="cn-x">${mode === "contradict" ? "⇄" : "↔"}</span>${chip(r.b)}</div>${r.ai ? `<p class="cn-ai" data-v="${r.ai.verdict}"><b>${VL[r.ai.verdict] ?? "AI"}</b> ${esc(r.ai.why)}</p>` : ""}<p class="cn-why">${esc(why(r.why))}</p><div class="gcrow"><button class="gcbtn primary" data-cn="accept">${M.accept}</button><button class="gcbtn" data-cn="spark">✦ Spark an idea</button><button class="gcbtn ghost" data-cn="no">${M.no}</button></div></div>`).join("") : `<p class="sub">Nothing found for this choice. ${mode === "contradict" ? "Offline matching needs wording like “not”, “rejects” or opposite terms; the AI search can read meaning." : "Add more notes, share #tags, or try the AI search."}</p>`) : "";
       body = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.full || t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnall>All topics</button>' : ""}</div><p class="sub tight">${hint}</p>
         <div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${CN.res ? "Search again" : "Find " + M.word}</button><button class="gcbtn" id="cnAI" ${CN.aiBusy ? "disabled" : ""} title="${aiOk() ? "The AI reads the notes and proposes pairs" : "Connect an AI in Settings to use this"}">${CN.aiBusy ? "AI is reading…" : "✦ Ask AI to find"}</button>${CN.only ? '<button class="gcbtn ghost" id="cnAll">All nodes</button>' : ""}</div>
-        ${CN.res?.length && !CN.aiBusy ? '<button class="gcbtn" id="cnSaveRes" title="Creates a new topic from these results">💾 Save as new cluster</button>' : ""}${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
+        ${CN.res?.length && !CN.aiBusy ? '<button class="gcbtn" id="cnFocusRes" title="Show only these ideas, grouped by topic">🎯 Focus on these</button>' : ""}${CN.res?.length && !CN.aiBusy ? '<button class="gcbtn" id="cnSaveRes" title="Creates a new topic from these results">💾 Save as new cluster</button>' : ""}${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
         <div class="cn-list" aria-live="polite">${cards}</div>`;
     }
     const REL_L = { SIMILAR: "≈", CONTRADICTS: "⇄", SUPPORTS: "→", RELATED: "↔" };
@@ -1978,7 +2024,7 @@ export function mount(root, opts) {
       <h4>Shared ground</h4>${c.shared.length ? `<div class="cmp-w">${c.shared.map((w) => `<span>${esc(w)}</span>`).join("")}</div>` : '<p class="sub">No common vocabulary yet. Add more notes, or use Link to connect ideas yourself.</p>'}
       <h4>Only in one topic</h4>${c.topics.filter((t) => c.uniq[t.id]?.length).map((t) => `<p class="cmp-u"><b>${esc(t.label)}</b>: ${c.uniq[t.id].map(esc).join(", ")}</p>`).join("") || '<p class="sub">Nothing distinctive found.</p>'}
       <h4>Between them</h4><div class="cmp-b"><button class="gcbtn" data-cngo="similar" ${c.sim.length ? "" : "disabled"}>${c.sim.length} similar-idea candidate${c.sim.length === 1 ? "" : "s"} →</button><button class="gcbtn" data-cngo="contradict" ${c.con.length ? "" : "disabled"}>${c.con.length} possible contradiction${c.con.length === 1 ? "" : "s"} →</button></div>
-      ${c.sim.length || c.con.length ? '<div class="gcrow wrap"><button class="gcbtn primary" id="cnSaveCmp" title="Creates a new topic holding this comparison and the strongest pairs, linked to the originals">💾 Save findings as a new cluster</button></div>' : ""}</div>`;
+      ${c.sim.length || c.con.length ? '<div class="gcrow wrap"><button class="gcbtn primary" id="cnFocus" title="Hide everything else and show only the ideas that connect these topics">🎯 Focus on connected ideas</button><button class="gcbtn primary" id="cnSaveCmp" title="Creates a new topic holding this comparison and the strongest pairs, linked to the originals">💾 Save findings as a new cluster</button></div>' : ""}</div>`;
     return out;
   }
   // a finding becomes a topic of its own: a summary, one idea per pair, and the links drawn between the originals
@@ -2064,7 +2110,8 @@ export function mount(root, opts) {
     "merge-topic": (b) => mergeTopic(b.dataset.id, $("#mergeTo")?.value), "dup-topic": (b) => dupTopic(b.dataset.id), "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { checkpoint("rename topic"); t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
     "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. You can undo it straight after, or from Library › Restore points.`)) return; pushRestorePoint("Before deleting topic " + t.label); checkpoint("delete topic"); const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); kidsOf(t.id).forEach((c) => { c.parent = ""; c.updated = Date.now(); }); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
     "del-col": (b) => { checkpoint("remove combined view"); tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
-    "gita-read": () => gitaReader({ view: "home" }), "cloud-sync": () => cloudSync(true), "undo": () => undo(), "redo": () => redo(), "edit-topic": (b) => editTopicModal(b.dataset.id), "toggle-split": () => { S.split = !S.split; islandOf.clear(); scopeChanged(); apply({ frame: true }); setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 700), 150); },
+    "gita-read": () => gitaReader({ view: "home" }), "focus-idea": (b) => focusIdea(b.dataset.id), "focus-exit": () => clearFocus(), "focus-nbrs": () => { if (S.focus) { const f = { ...S.focus, nbrs: !S.focus.nbrs }; setFocus(f); } },
+    "focus-lineage": () => { const id = S.selected || S.focus?.idea; if (!id || !raw.has(id)) return toast("Click an idea first, then open its lineage."); L.chain = "cross"; L.focus = id; L.back = []; L.more.clear(); L.off = {}; L.view = { x: 0, y: 0, k: 1 }; setLens("lineage"); syncTabs(); renderLineage(); }, "cloud-sync": () => cloudSync(true), "undo": () => undo(), "redo": () => redo(), "edit-topic": (b) => editTopicModal(b.dataset.id), "toggle-split": () => { S.split = !S.split; islandOf.clear(); scopeChanged(); apply({ frame: true }); setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 700), 150); },
     "export": () => { exportBackup(); toast("Backup downloaded."); },
   };
   root.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (!b || !root.contains(b)) return; const f = actions[b.dataset.act]; if (f) { e.preventDefault(); f(b); } });
@@ -2126,6 +2173,8 @@ export function mount(root, opts) {
     if (e.target.closest("#cnFind")) { if (CN.mode === "compare") runCompare(); else runConn(); return; }
     const go = e.target.closest("[data-cngo]"); if (go) { CN.mode = go.dataset.cngo; CN.res = null; CN.ai = ""; renderConn(); runConn(); return; }
     if (e.target.closest("#cnSaveCmp")) { saveCompare(); return; }
+    if (e.target.closest("#cnFocus")) { focusConnected(false); return; }
+    if (e.target.closest("#cnFocusRes")) { focusConnected(true); return; }
     if (e.target.closest("#cnSaveRes")) { saveResults(); return; }
     if (e.target.closest("#cnAI")) { aiDiscover(); return; }
     if (e.target.closest("#cnJudge")) { aiJudge(); return; }
@@ -2173,7 +2222,7 @@ export function mount(root, opts) {
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
     else if (e.key === "Escape" && !modal.hidden) closeModal();
     else if (e.key === "Escape" && !$("#gcHelpM").hidden) showHelp(false);
-    else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (S.highlight) clearPath(); else if (S.selected) select(null); }
+    else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (S.highlight) clearPath(); else if (S.selected) select(null); else if (S.focus) clearFocus(); }
   };
   document.addEventListener("keydown", onKey);
   const ro = new ResizeObserver(() => { const w = stage.clientWidth, h = stage.clientHeight; if (w > 50 && h > 50) { fg.width(w).height(h); applyViewOffset(); wake(500); } });
