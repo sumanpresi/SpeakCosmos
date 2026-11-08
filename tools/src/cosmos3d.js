@@ -774,34 +774,46 @@ export function mount(root, opts) {
   function hideArcTip() { if (arcTip) arcTip.hidden = true; }
   { // find the bridge nearest the cursor (screen space), cheaply, once per frame at most
     let pend = null; const v = new THREE.Vector3();
+    const nearest = (cx, cy, tol) => {
+      const r = stage.getBoundingClientRect(), mx = cx - r.left, my = cy - r.top, cam = fg.camera(); cam.updateMatrixWorld();
+      let best = -1, bd = tol * tol;
+      for (let i = 0; i < arcList.length; i++) {
+        const P = arcList[i].pts; let px = 0, py = 0, has = false;
+        for (let k = 0; k < 30; k++) {
+          v.set(P[k * 3], P[k * 3 + 1], P[k * 3 + 2]).project(cam); if (v.z > 1) { has = false; continue; }
+          const x = (v.x + 1) * 0.5 * r.width, y = (1 - v.y) * 0.5 * r.height;
+          if (has) { const dx = x - px, dy = y - py, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((mx - px) * dx + (my - py) * dy) / L)), qx = px + dx * t - mx, qy = py + dy * t - my, d = qx * qx + qy * qy; if (d < bd) { bd = d; best = i; } }
+          px = x; py = y; has = true;
+        }
+      }
+      return best;
+    };
     stage.addEventListener("pointermove", (ev) => {
-      if (arcPin >= 0) return;
+      if (arcPin >= 0 || ev.pointerType === "touch") return;
       if (!arcList.length || ev.buttons || S.hover) { if (arcHot >= 0 && (ev.buttons || S.hover)) setArcHot(-1); return; }
       if (pend) { pend = ev; return; } pend = ev;
-      requestAnimationFrame(() => {
-        const e2 = pend; pend = null; if (!arcList.length) return;
-        const r = stage.getBoundingClientRect(), mx = e2.clientX - r.left, my = e2.clientY - r.top, cam = fg.camera(); cam.updateMatrixWorld();
-        let best = -1, bd = 11 * 11;
-        for (let i = 0; i < arcList.length; i++) {
-          const P = arcList[i].pts; let px = 0, py = 0, has = false;
-          for (let k = 0; k < 30; k += 2) {
-            v.set(P[k * 3], P[k * 3 + 1], P[k * 3 + 2]).project(cam); if (v.z > 1) { has = false; continue; }
-            const x = (v.x + 1) * 0.5 * r.width, y = (1 - v.y) * 0.5 * r.height;
-            if (has) { const dx = x - px, dy = y - py, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((mx - px) * dx + (my - py) * dy) / L)), qx = px + dx * t - mx, qy = py + dy * t - my, d = qx * qx + qy * qy; if (d < bd) { bd = d; best = i; } }
-            px = x; py = y; has = true;
-          }
-        }
-        setArcHot(best, e2);
-      });
+      requestAnimationFrame(() => { const e2 = pend; pend = null; if (!arcList.length) return; setArcHot(nearest(e2.clientX, e2.clientY, 11), e2); });
     }, { passive: true });
     stage.addEventListener("pointerleave", () => { if (arcPin < 0) setArcHot(-1); });
     let down = null;
     stage.addEventListener("pointerdown", (ev) => { down = [ev.clientX, ev.clientY]; }, { passive: true });
     stage.addEventListener("pointerup", (ev) => {
-      if (!down || Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) > 5) { down = null; return; } down = null;
-      if (arcHot >= 0 && arcPin < 0) { openBridge(arcHot); return; }
-      if (arcPin >= 0 && arcHot === arcPin) return;
-      if (arcPin >= 0) closeBridge();
+      if (!down || Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) > 8) { down = null; return; } down = null;
+      const touch = ev.pointerType === "touch" || ev.pointerType === "pen";
+      if (!touch) {
+        if (arcHot >= 0 && arcPin < 0) { openBridge(arcHot); return; }
+        if (arcPin >= 0 && arcHot === arcPin) return;
+        if (arcPin >= 0) closeBridge();
+        return;
+      }
+      // finger: no hover, so find the nearest bridge to the tap with a generous reach, unless a point was tapped
+      const cx = ev.clientX, cy = ev.clientY, t0 = performance.now();
+      setTimeout(() => {
+        if (!arcList.length || lastNodeTap > t0 - 60) return;
+        const hit = nearest(cx, cy, 26);
+        if (hit >= 0) { if (hit === arcPin) return; setArcHot(hit, { clientX: cx, clientY: cy }); openBridge(hit); }
+        else if (arcPin >= 0) closeBridge();
+      }, 30);
     });
   }
   function rebuildPoints() {
@@ -1039,7 +1051,8 @@ export function mount(root, opts) {
     const id = n ? n.id : null;
     hoverTimer = setTimeout(() => { if (S.hover === id || destroyed) return; S.hover = id; live.hover = id; live.emphasis = emphasis(); rebuildLinks(); rebuildPoints(); live.dirty = true; wake(500); }, id ? 70 : 140);
   });
-  fg.onNodeClick((n) => select(n.id));
+  let lastNodeTap = 0;
+  fg.onNodeClick((n) => { lastNodeTap = performance.now(); select(n.id); });
   fg.onBackgroundClick(() => { if (S.selected) select(null); });
 
   // ── inspector ─────────────────────────────────────────────────────────────────────────────────────────────
