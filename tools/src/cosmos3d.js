@@ -241,13 +241,25 @@ export function mount(root, opts) {
     islandOf.clear(); islandR.clear(); list = list.filter((t) => !emptyParent(t));
     const rad = new Map(list.map((t) => [t, 40]));
     for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1] * ysOf(t), q[2]))); } }
-    const m = list.length, rs = list.map((t) => rad.get(t));
-    let R = 0; if (m > 1) for (let i = 0; i < m; i++) R = Math.max(R, (rs[i] + rs[(i + 1) % m] + 170) / (2 * Math.sin(Math.PI / m)));
-    // 2-3 islands sit on a ring; more are spread over a sphere (Fibonacci) so the whole thing is round too
-    list.forEach((t, i) => {
-      if (m <= 3) { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); }
-      else { const y = 1 - (2 * (i + 0.5)) / m, rr = Math.sqrt(1 - y * y), th = i * 2.399963; islandOf.set(t, [Math.round(R * 1.15 * rr * Math.cos(th)), Math.round(R * 1.15 * y), Math.round(R * 1.15 * rr * Math.sin(th))]); }
-      islandR.set(t, rs[i]);
+    // subtopics stay together: each family (a topic and its subtopics) is one group, members sit on a small ring around the group centre
+    const par = (t) => { const k = t.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === t)?.parent : null; return k ? "u:" + k : t; };
+    const fam = new Map(); for (const t of list) { const g = par(t); if (!fam.has(g)) fam.set(g, []); fam.get(g).push(t); }
+    const G = [...fam.values()].map((mem) => {
+      const k = mem.length, rs = mem.map((t) => rad.get(t));
+      let ring = 0; if (k > 1) for (let i = 0; i < k; i++) ring = Math.max(ring, k === 2 ? (rs[0] + rs[1] + 110) / 2 : (rs[i] + rs[(i + 1) % k] + 110) / (2 * Math.sin(Math.PI / k)));
+      return { mem, ring, r: k > 1 ? ring + Math.max(...rs) : rs[0] };
+    });
+    const m = G.length; let R = 0; if (m > 1) for (let i = 0; i < m; i++) R = Math.max(R, (G[i].r + G[(i + 1) % m].r + 170) / (2 * Math.sin(Math.PI / m)));
+    // 2-3 groups sit on a ring; more are spread over a sphere (Fibonacci) so the whole thing is round too
+    G.forEach((g, i) => {
+      let c;
+      if (m <= 3) { const th = (i / m) * Math.PI * 2; c = [R * Math.cos(th), 0, R * Math.sin(th)]; }
+      else { const y = 1 - (2 * (i + 0.5)) / m, rr = Math.sqrt(1 - y * y), th = i * 2.399963; c = [R * 1.15 * rr * Math.cos(th), R * 1.15 * y, R * 1.15 * rr * Math.sin(th)]; }
+      g.mem.forEach((t, j) => {
+        const k = g.mem.length, a = (j / k) * Math.PI * 2 + 0.6;
+        islandOf.set(t, k > 1 ? [Math.round(c[0] + g.ring * Math.cos(a)), Math.round(c[1]), Math.round(c[2] + g.ring * Math.sin(a))] : [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
+        islandR.set(t, rad.get(t));
+      });
     });
   }
   const posOf = (n) => {
@@ -415,6 +427,7 @@ export function mount(root, opts) {
     <button id="gcPath" aria-expanded="false"><i class="ic ic-route"></i>Find a path</button>
   </div>
   <div class="gc-pop" id="gcPop" hidden></div>
+  <div class="gc-navpop" id="gcNavPop" hidden></div>
   <section class="gc-legend card" id="gcLegend"></section>
   <div class="gc-zoom card"><button data-cam="in" title="Zoom in">+</button><button data-cam="out" title="Zoom out">−</button><button data-cam="fit" title="Fit all"><i class="ic ic-fit"></i></button><button id="gcSpin" data-cam="spin" title="Rotate slowly"><i class="ic ic-rotate"></i></button></div>
   <div class="gc-focusbar card" id="gcFocus" hidden></div>
@@ -1840,12 +1853,44 @@ export function mount(root, opts) {
   const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; for (const t of U.topics) if (t.parent) c["u:" + t.parent] = (c["u:" + t.parent] ?? 0) + (c["u:" + t.id] ?? 0); return c; };
   let tabsOpenP = "";
   const openParent = () => { const o = S.lens === "explore" ? S.scope || "" : null, a = o && o.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === o) : null; return a ? (a.parent || a.id) : ""; };
+  let navOpen = false, navQ = "";
+  const RECENT_KEY = "sc_recent_scopes";
+  const recents = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").filter((id) => id && (topicInfo(id) || colOf(id))); } catch (e) { return []; } };
+  const noteRecent = (id) => { if (!id) return; try { const r = [id, ...recents().filter((x) => x !== id)].slice(0, 5); localStorage.setItem(RECENT_KEY, JSON.stringify(r)); } catch (e) {} };
+  function renderNav() {
+    const el = $("#gcNavPop"); if (!navOpen) { el.hidden = true; return; }
+    const cnt = countsByTopic(), on = S.scope || "", q = norm(navQ);
+    const row = (id, label, color, n, cls = "", sub = "") => `<button class="nv ${cls} ${on === id ? "on" : ""}" data-navgo="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : '<i class="tdot all"></i>'}<span class="nl">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ""}</span><b>${n ?? ""}</b></button>`;
+    const match = (t) => !q || norm(t.label).includes(q) || norm(t.full || "").includes(q);
+    const tops = [{ id: "eng", label: "English", color: "#3b82c4" }, { id: "phil", label: "Philosophy", color: "#2f9e6b" }, { id: "gita", label: "Bhagavad Gita", color: "#e08a2e" }, ...U.topics.filter((t) => !t.parent).map((t) => ({ id: "u:" + t.id, label: t.label, color: t.color, key: t.id }))];
+    const body = tops.map((t) => {
+      const kids = t.key ? kidsOf(t.key) : [], kk = kids.filter((c) => match({ label: c.label, full: t.label + " " + c.label }));
+      if (!match(t) && !kk.length) return "";
+      return row(t.id, t.label, t.color, cnt[t.id] ?? 0, "top", kids.length ? kids.length + " subtopics" : "") + (kids.length ? kk.map((c) => row("u:" + c.id, c.label, c.color, cnt["u:" + c.id] ?? 0, "kid")).join("") : "");
+    }).join("");
+    const cols = U.cols.filter((c) => !q || norm(c.label).includes(q));
+    const rc = !q ? recents().filter((id) => id !== on).slice(0, 4) : [];
+    el.hidden = false;
+    el.innerHTML = `<div class="nvh"><b>Topics</b><button class="gc-icon" data-act="nav" aria-label="Close">✕</button></div>
+      <div class="nvq"><i class="ic ic-search"></i><input id="gcNavQ" placeholder="Find a topic or subtopic" value="${esc(navQ)}" autocomplete="off" spellcheck="false"></div>
+      <div class="nvl">${!q ? row("", "All topics", "", "", "all") : ""}${rc.length ? `<div class="nvs">Recent</div>${rc.map((id) => { const ti = colOf(id) ? { label: colOf(id).label, color: "" } : topicInfo(id); return row(id, ti.full || ti.label, ti.color, "", "rec"); }).join("")}<div class="nvs">All topics</div>` : ""}${body || '<p class="nvnone">No topic matches.</p>'}${cols.length ? `<div class="nvs">Combined views</div>${cols.map((c) => row("c:" + c.id, c.label, "", "")).join("")}` : ""}</div>
+      <div class="nvf"><button class="gcbtn" data-act="new-topic">+ New topic</button><button class="gcbtn" data-act="combine">Combine</button><button class="gcbtn nvu" data-act="undo" ${UNDO.length ? "" : "disabled"}>↶ Undo</button></div>`;
+  }
+  function setNav(v) { navOpen = v; if (!v) navQ = ""; renderTopics(); renderNav(); if (v) { const i = $("#gcNavQ"); if (i && !coarse) i.focus(); } }
   function renderTopics() {
     const el = $("#gcTopics"), cnt = countsByTopic(), on = S.lens === "explore" ? S.scope || "" : null;
     const act = on && on.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === on) : null, openP = act ? (act.parent || act.id) : "";
     tabsOpenP = openP;
     const tab = (id, label, extra = "", color = "", cls = "") => `<button class="tp ${cls} ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
-    el.innerHTML = `<div class="tp-scroll">${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${tab("gita", "Bhagavad Gita", `<b>${cnt.gita ?? 0}</b>`)}${U.topics.filter((t) => !t.parent).map((t) => { const kids = kidsOf(t.id); return tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>${kids.length && openP !== t.id ? `<small class="kc">${kids.length} sub</small>` : ""}`, t.color) + (openP === t.id ? kids.map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(t.id)}" title="Add another subtopic, for example another culture">+ Subtopic</button>` : ""); }).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}</div>
+    const topTabs = `${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${tab("gita", "Bhagavad Gita", `<b>${cnt.gita ?? 0}</b>`)}${U.topics.filter((t) => !t.parent).map((t) => { const kids = kidsOf(t.id); return tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>${kids.length && openP !== t.id ? `<small class="kc">${kids.length} sub</small>` : ""}`, t.color) + (openP === t.id ? kids.map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(t.id)}" title="Add another subtopic, for example another culture">+ Subtopic</button>` : ""); }).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}`;
+    // compact mode (phones, folding screens, many topics): one Topics button opens a navigator; the strip only shows where you are
+    const nTop = U.topics.filter((t) => !t.parent).length + 3, compact = root.clientWidth < 1000 || nTop > 7;
+    const curLabel = !on ? "All topics" : colOf(on) ? colOf(on).label : (topicInfo(on)?.full ?? "Topic");
+    const curTi = on && !colOf(on) ? topicInfo(on) : null;
+    const navBtn = `<button class="tp navb ${navOpen ? "on" : ""}" data-act="nav" aria-expanded="${navOpen}" aria-haspopup="dialog" ${curTi?.color ? `style="--tc:${curTi.color}"` : ""}><i class="ic ic-menu"></i><span class="navl">${esc(curLabel)}</span><small class="kc">▾</small></button>`;
+    const parentRow = act ? (() => { const P = U.topics.find((x) => x.id === openP); return P ? tab("u:" + P.id, "All of " + P.label, `<b>${cnt["u:" + P.id] ?? 0}</b>`, P.color) + kidsOf(P.id).map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(P.id)}">+ Subtopic</button>` : ""; })() : (on && on.startsWith("u:") ? "" : "");
+    const compactTabs = (on ? tab("", "All topics") : "") + parentRow;
+    el.innerHTML = `<div class="tp-scroll">${navBtn}${compact ? compactTabs : topTabs}</div>
       <div class="tp-right"><button class="tp tool" data-act="gita-read" id="gcGita" hidden>📖 Read the Gita</button><button class="tp tool ur" data-act="undo" id="gcUndo" aria-label="Undo" disabled>↶</button><button class="tp tool ur" data-act="redo" id="gcRedo" aria-label="Redo" disabled>↷</button><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Compare</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
     chromeSave();
   }
@@ -2356,9 +2401,13 @@ export function mount(root, opts) {
   }
   // ---- events
   const strip = $("#gcTopics");
-  strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); renderEmpty(); } });
+  strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); noteRecent(t.dataset.topic); renderEmpty(); } });
+  const navPop = $("#gcNavPop");
+  navPop.addEventListener("click", (e) => { const g = e.target.closest("[data-navgo]"); if (!g) return; if (S.lens !== "explore") setLens("explore"); const id = g.dataset.navgo; setScope(id || null); noteRecent(id); setNav(false); renderEmpty(); });
+  navPop.addEventListener("input", (e) => { if (e.target.id === "gcNavQ") { navQ = e.target.value; const pos = e.target.selectionStart; renderNav(); const i = $("#gcNavQ"); if (i) { i.focus(); i.setSelectionRange(pos, pos); } } });
+  root.addEventListener("pointerdown", (e) => { if (navOpen && !e.target.closest("#gcNavPop,.navb")) setNav(false); }, true);
   const actions = {
-    "new-topic": () => newTopicModal(), "add-pack": (b) => addPack(b.dataset.pack), "new-sub": (b) => { closeModal(); newTopicModal(b.dataset.parent); }, "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
+    "nav": () => setNav(!navOpen), "new-topic": () => { if (navOpen) setNav(false); newTopicModal(); },  "add-pack": (b) => addPack(b.dataset.pack), "new-sub": (b) => { closeModal(); newTopicModal(b.dataset.parent); }, "combine": () => { if (navOpen) setNav(false); combineModal(); }, "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
     "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope), c = colOf(S.scope), kt = k && U.topics.find((x) => x.id === k), sib = kt?.parent ? kidsOf(kt.parent).map((x) => "u:" + x.id) : null; CN.topics = new Set(sib && sib.length > 1 ? sib : k ? [S.scope] : c ? c.topics : []); CN.only = null; CN.res = null; CN.ai = ""; CN.cmp = null; CN.mode = "compare"; showPop("conn"); if (topicSel().length >= 2) runCompare(); },
     "new-note": (b) => { const t = b?.dataset.topic; noteModal(t ? { topic: t } : {}); },
     "note-about": (b) => { const n = raw.get(b.dataset.id); if (!n) return; noteModal({ title: "", text: `About [[${n.l}]]\n\n` }); },
@@ -2479,6 +2528,7 @@ export function mount(root, opts) {
     if (mod && !typing && kz === "z" && !e.shiftKey) { if (UNDO.length) { e.preventDefault(); undo(); } }
     else if (mod && !typing && ((kz === "z" && e.shiftKey) || kz === "y")) { if (REDO.length) { e.preventDefault(); redo(); } }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
+    else if (e.key === "Escape" && navOpen) setNav(false);
     else if (e.key === "Escape" && !modal.hidden) closeModal();
     else if (e.key === "Escape" && !$("#gcHelpM").hidden) showHelp(false);
     else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (bridgeEl && !bridgeEl.hidden) closeBridge(); else if (S.highlight) clearPath(); else if (S.selected) select(null); else if (S.focus) clearFocus(); }
