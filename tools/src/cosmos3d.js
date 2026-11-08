@@ -645,7 +645,7 @@ export function mount(root, opts) {
   function buildArcs(list) {
     const scene = fg.scene(), N = 30, dk = S.dark;
     if (arcGroup) { scene.remove(arcGroup); arcGroup.children.forEach((o) => { o.geometry?.dispose(); o.material?.dispose(); }); arcGroup = null; }
-    arcList = []; arcHot = -1; arcTube = arcPulse = arcDots = null; hideArcTip();
+    arcList = []; arcHot = -1; arcPin = -1; if (bridgeEl) bridgeEl.hidden = true; arcTube = arcPulse = arcDots = null; hideArcTip();
     if (!list.length) return;
     const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     const pos = new Float32Array(list.length * (N - 1) * 6), col = new Float32Array(list.length * (N - 1) * 6);
@@ -696,6 +696,32 @@ export function mount(root, opts) {
     }
     return !!arcDots?.visible;
   }
+  const bdesc = (n) => String(n.text ? plainTxt(n.text) : n.d || "").replace(/\s+/g, " ").trim();
+  const plainTxt = (t) => String(t).replace(/\[\[([^\]|]+)\|?([^\]]*)\]\]/g, (m, a, b) => b || a).replace(/[#*_`>]/g, "");
+  let arcPin = -1, bridgeEl = null;
+  function closeBridge() { arcPin = -1; if (bridgeEl) bridgeEl.hidden = true; root.classList.remove("has-bridge"); setArcHot(-1); }
+  function openBridge(i) {
+    const a = arcList[i]; if (!a) return;
+    arcPin = i; setArcHot(i); hideArcTip();
+    if (!bridgeEl) {
+      bridgeEl = document.createElement("aside"); bridgeEl.className = "gc-bridge card"; bridgeEl.id = "gcBridge"; root.appendChild(bridgeEl);
+      bridgeEl.addEventListener("click", (ev) => {
+        const b = ev.target.closest("[data-bd]"); if (!b) return; ev.stopPropagation(); const cur2 = arcList[arcPin]; if (!cur2) return;
+        const act = b.dataset.bd, A = cur2.a.raw, B = cur2.b.raw;
+        if (act === "close") closeBridge();
+        else if (act === "open-a" || act === "open-b") { const id = act === "open-a" ? A.id : B.id; closeBridge(); select(id); }
+        else if (act === "focus-pair") { const ids = [A.id, B.id]; closeBridge(); setFocus({ label: clip(A.l, 22) + " ↔ " + clip(B.l, 22), nodes: new Set(ids), nbrs: true, idea: A.id }); }
+        else if (act === "lineage") { const id = A.id; closeBridge(); S.selected = id; L.chain = "cross"; L.focus = id; L.back = []; L.more.clear(); L.off = {}; L.view = { x: 0, y: 0, k: 1 }; setLens("lineage"); syncTabs(); renderLineage(); }
+        else if (act === "unlink") { const e = cur2.l, hit = U.bridges.find((x) => (x.a === e.s && x.b === e.t && x.rel === e.rel) || (x.a === e.t && x.b === e.s && x.rel === e.rel)); closeBridge(); if (hit) { checkpoint("remove connection"); tombB(hit); U.bridges = U.bridges.filter((x) => x !== hit); afterDataChange(); toast("Connection removed.", 7000, true); } else toast("This link comes from the notes' own text; edit the note to change it."); }
+      });
+    }
+    const A = a.a.raw, B = a.b.raw, ta = topicOf(A), tb = topicOf(B), rl = REL[a.l.rel]?.verb || String(a.l.rel).toLowerCase(), warm = a.l.rel === "CONTRADICTS";
+    const sa = new Set(tokens(A.l + " " + bdesc(A))), shared = [...new Set(tokens(B.l + " " + bdesc(B)).filter((w) => sa.has(w) && w.length > 3))].slice(0, 7);
+    const own = U.bridges.find((x) => (x.a === a.l.s && x.b === a.l.t && x.rel === a.l.rel) || (x.a === a.l.t && x.b === a.l.s && x.rel === a.l.rel));
+    const side = (n, t, key) => `<section class="bd-side" style="--c:${topicCol(t)}"><div class="bd-top"><i></i><span>${esc(topicInfo(t)?.full || topicInfo(t)?.label || t)}</span><em>${esc(KIND[n.k]?.label.replace(/s$/, "") || "")}</em></div><h3>${esc(n.l)}</h3><p>${esc(clip(bdesc(n), 560) || "No description yet.")}</p><button class="gcbtn" data-bd="open-${key}">Open full details</button></section>`;
+    bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}${own?.note ? `<div class="bd-note">“${esc(clip(own.note, 160))}”</div>` : ""}</div>${side(B, tb, "b")}</div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
+    bridgeEl.hidden = false; root.classList.add("has-bridge"); wake(1500);
+  }
   function setArcHot(i, ev) {
     if (i === arcHot) { if (i >= 0) placeArcTip(ev); return; }
     const scene = fg.scene();
@@ -715,7 +741,8 @@ export function mount(root, opts) {
   function showArcTip(a, ev) {
     if (!arcTip) { arcTip = document.createElement("div"); arcTip.className = "arc-tip"; stage.appendChild(arcTip); }
     const ta = topicOf(a.a.raw), tb = topicOf(a.b.raw), rl = REL[a.l.rel]?.verb || String(a.l.rel).toLowerCase(), warm = a.l.rel === "CONTRADICTS";
-    arcTip.innerHTML = `<div class="at-rel${warm ? " con" : ""}">${esc(rl)}</div><div class="at-row"><i style="--c:${topicCol(ta)}"></i><span><b>${esc(a.a.raw.l)}</b><small>${esc(topicInfo(ta)?.full || ta)}</small></span></div><div class="at-mid">⇅</div><div class="at-row"><i style="--c:${topicCol(tb)}"></i><span><b>${esc(a.b.raw.l)}</b><small>${esc(topicInfo(tb)?.full || tb)}</small></span></div>`;
+    const row = (n, t) => `<div class="at-row"><i style="--c:${topicCol(t)}"></i><span><b>${esc(clip(n.l, 70))}</b><small>${esc(topicInfo(t)?.full || topicInfo(t)?.label || t)}</small>${bdesc(n) ? `<em>${esc(clip(bdesc(n), 120))}</em>` : ""}</span></div>`;
+    arcTip.innerHTML = `<div class="at-rel${warm ? " con" : ""}">${esc(rl)}</div>${row(a.a.raw, ta)}<div class="at-mid">⇅</div>${row(a.b.raw, tb)}<div class="at-hint">Click for both ideas side by side</div>`;
     arcTip.hidden = false; placeArcTip(ev);
   }
   function placeArcTip(ev) { if (!arcTip || !ev) return; const r = stage.getBoundingClientRect(), w = arcTip.offsetWidth || 220, h = arcTip.offsetHeight || 110; arcTip.style.left = Math.max(8, Math.min(r.width - w - 8, ev.clientX - r.left + 16)) + "px"; arcTip.style.top = Math.max(8, Math.min(r.height - h - 8, ev.clientY - r.top + 16)) + "px"; }
@@ -723,6 +750,7 @@ export function mount(root, opts) {
   { // find the bridge nearest the cursor (screen space), cheaply, once per frame at most
     let pend = null; const v = new THREE.Vector3();
     stage.addEventListener("pointermove", (ev) => {
+      if (arcPin >= 0) return;
       if (!arcList.length || ev.buttons || S.hover) { if (arcHot >= 0 && (ev.buttons || S.hover)) setArcHot(-1); return; }
       if (pend) { pend = ev; return; } pend = ev;
       requestAnimationFrame(() => {
@@ -741,7 +769,15 @@ export function mount(root, opts) {
         setArcHot(best, e2);
       });
     }, { passive: true });
-    stage.addEventListener("pointerleave", () => setArcHot(-1));
+    stage.addEventListener("pointerleave", () => { if (arcPin < 0) setArcHot(-1); });
+    let down = null;
+    stage.addEventListener("pointerdown", (ev) => { down = [ev.clientX, ev.clientY]; }, { passive: true });
+    stage.addEventListener("pointerup", (ev) => {
+      if (!down || Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) > 5) { down = null; return; } down = null;
+      if (arcHot >= 0 && arcPin < 0) { openBridge(arcHot); return; }
+      if (arcPin >= 0 && arcHot === arcPin) return;
+      if (arcPin >= 0) closeBridge();
+    });
   }
   function rebuildPoints() {
     const scene = fg.scene();
@@ -2354,7 +2390,7 @@ export function mount(root, opts) {
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
     else if (e.key === "Escape" && !modal.hidden) closeModal();
     else if (e.key === "Escape" && !$("#gcHelpM").hidden) showHelp(false);
-    else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (S.highlight) clearPath(); else if (S.selected) select(null); else if (S.focus) clearFocus(); }
+    else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (bridgeEl && !bridgeEl.hidden) closeBridge(); else if (S.highlight) clearPath(); else if (S.selected) select(null); else if (S.focus) clearFocus(); }
   };
   document.addEventListener("keydown", onKey);
   const ro = new ResizeObserver(() => { const w = stage.clientWidth, h = stage.clientHeight; if (w > 50 && h > 50) { fg.width(w).height(h); applyViewOffset(); wake(500); } });
