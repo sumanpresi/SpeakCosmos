@@ -1375,7 +1375,8 @@ export function mount(root, opts) {
       <div class="field"><span class="lab">Colour by</span><div class="seg wide"><button data-color="kind" class="${S.colorBy === "kind" ? "on" : ""}">Kind</button><button data-color="group" class="${S.colorBy === "group" ? "on" : ""}">Constellation</button></div></div>
       <div class="field"><span class="lab">Connections</span>${Object.entries(EDGE_GROUPS).map(([g, l]) => `<label class="chk"><input type="checkbox" data-edge="${g}" ${S.edgeGroups[g] ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>
       <div class="field"><span class="lab">Motion</span><label class="chk"><input type="checkbox" id="gcSpinChk" ${S.autoRotate ? "checked" : ""}><span>Rotate slowly</span></label></div>
-      <div class="field"><span class="lab">Text size</span>${[["topic", "Topic names"], ["bridge", "Connection labels"], ["node", "Idea names"]].map(([k, l]) => `<label class="fs"><span>${l}</span><input type="range" min="0.3" max="2.5" step="0.05" value="${FS[k]}" data-fs="${k}" aria-label="${l} size"><output>${Math.round(FS[k] * 100)}%</output></label>`).join("")}<button class="gcbtn ghost" data-fsreset="1">Reset sizes</button></div>`;
+      <div class="field"><span class="lab">Text size</span>${[["topic", "Topic names"], ["bridge", "Connection labels"], ["node", "Idea names"]].map(([k, l]) => `<label class="fs"><span>${l}</span><input type="range" min="0.3" max="2.5" step="0.05" value="${FS[k]}" data-fs="${k}" aria-label="${l} size"><output>${Math.round(FS[k] * 100)}%</output></label>`).join("")}<button class="gcbtn ghost" data-fsreset="1">Reset sizes</button></div>
+      <div class="field"><span class="lab">App</span><button class="gcbtn" data-nav="settings">⚙ Settings: AI model, key, Google sync</button></div>`;
   }
   function applyFS(k) {
     try { localStorage.setItem("sc_fs", JSON.stringify(FS)); } catch (e) {}
@@ -1964,7 +1965,7 @@ export function mount(root, opts) {
     el.innerHTML = `<div class="nvh"><b>Topics</b><button class="gc-icon" data-act="nav" aria-label="Close">✕</button></div>
       <div class="nvq"><i class="ic ic-search"></i><input id="gcNavQ" placeholder="Find a topic or subtopic" value="${esc(navQ)}" autocomplete="off" spellcheck="false"></div>
       <div class="nvl">${!q ? row("", "All topics", "", "", "all") : ""}${rc.length ? `<div class="nvs">Recent</div>${rc.map((id) => { const ti = colOf(id) ? { label: colOf(id).label, color: "" } : topicInfo(id); return row(id, ti.full || ti.label, ti.color, "", "rec"); }).join("")}<div class="nvs">All topics</div>` : ""}${body || '<p class="nvnone">No topic matches.</p>'}${cols.length ? `<div class="nvs">Combined views</div>${cols.map((c) => row("c:" + c.id, c.label, "", "")).join("")}` : ""}</div>
-      <div class="nvf"><button class="gcbtn" data-act="new-topic">+ New topic</button><button class="gcbtn" data-act="combine">Combine</button><button class="gcbtn nvu" data-act="undo" ${UNDO.length ? "" : "disabled"}>↶ Undo</button></div>`;
+      <div class="nvf"><button class="gcbtn" data-act="new-topic">+ New topic</button><button class="gcbtn" data-act="combine">Combine</button><button class="gcbtn" data-nav="settings">⚙ Settings</button><button class="gcbtn nvu" data-act="undo" ${UNDO.length ? "" : "disabled"}>↶ Undo</button></div>`;
   }
   function setNav(v) { navOpen = v; if (!v) navQ = ""; renderTopics(); renderNav(); if (v) { const i = $("#gcNavQ"); if (i && !coarse) i.focus(); } }
   function renderTopics() {

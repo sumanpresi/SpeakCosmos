@@ -554,3 +554,11 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .fs input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--text2);height:28px}
 .fs output{color:var(--text3);font-variant-numeric:tabular-nums}
 .fs span{grid-row:1;grid-column:1}.fs output{grid-row:1;grid-column:2}.fs input[type=range]{grid-row:2}
+/* mid-width screens (unfolded foldables, small tablets): keep the right-hand buttons, including Settings, on screen */
+@media (max-width:1320px){
+ .gc-brand b,.gc-brand small{display:none}
+ .gc-nav button:not(.on) span{display:none}.gc-nav button{padding:6px 10px}
+ .gc-search{width:150px}.gc-search kbd{display:none}
+ .gc-right{flex:none}.gc-top{gap:8px}
+}
+@media (max-width:1100px){.gc-nav button.on span{display:none}.gc-search{width:120px}.gc-btn span{display:none}.gc-btn{padding:0 9px}}
