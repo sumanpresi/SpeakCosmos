@@ -452,3 +452,5 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .gc .gr-vl{display:grid;gap:4px}.gc .gr-vl button{display:flex;gap:10px;text-align:left;padding:6px 8px;border-radius:8px;border:0;background:transparent;color:inherit;cursor:pointer}.gc .gr-vl button:hover{background:var(--line)}.gc .gr-vl b{min-width:26px;color:#c98a1c}.gc .gr-vl span{font-size:13.5px;color:var(--text2)}
 .gc .tp.sub{font-size:12.5px;opacity:.92;margin-left:-2px}.gc .tp .kc{margin-left:6px;font-size:10.5px;color:var(--text3)}
 .gc .lib-row.sub{padding-left:22px}
+
+.tleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;align-items:center;max-width:46ch}.tleg i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:4px;vertical-align:-1px;box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 30%,transparent)}

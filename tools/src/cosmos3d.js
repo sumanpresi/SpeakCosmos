@@ -227,18 +227,30 @@ export function mount(root, opts) {
   const inScope = (n) => !SS || SS.has(topicOf(n));
   const islandOf = new Map();
   const islandR = new Map();
+  // Round, not squashed: each topic's cloud is stretched vertically until it is as tall as it is wide
+  const yScale = new Map(); let yScaleAll = 1;
+  const stretch = (list) => { let mx = 1, my = 1; for (const n of list) { const q = n.q || n.p; if (!q) continue; mx = Math.max(mx, Math.abs(q[0]), Math.abs(q[2])); my = Math.max(my, Math.abs(q[1])); } return Math.max(1, Math.min(3.2, mx / my)); };
+  const ysOf = (t) => { let v = yScale.get(t); if (v == null) { v = stretch(allNodes.filter((n) => n.k !== "core" && n.k !== "hub" && topicOf(n) === t)); yScale.set(t, v); } return v; };
+  const ysAll = () => { if (yScaleAll === 1) { const l = data.nodes.filter((n) => n.k !== "core"); yScaleAll = stretch(l.map((n) => ({ p: [n.p[0], n.p[1], n.p[2]] }))); } return yScaleAll; };
+  const TCOL = { eng: "#3b82c4", phil: "#2f9e6b", gita: "#e08a2e" };
+  const topicCol = (t) => { const i = topicInfo(t); return i?.color || TCOL[t] || "#8a7f70"; };
   const splitOn = () => (S.focus ? !S.scope : !S.scope && S.split && S.lens === "explore");
   function layoutIslands(list) {
     islandOf.clear(); islandR.clear();
     const rad = new Map(list.map((t) => [t, 40]));
-    for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1], q[2]))); } }
+    for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1] * ysOf(t), q[2]))); } }
     const m = list.length, rs = list.map((t) => rad.get(t));
     let R = 0; if (m > 1) for (let i = 0; i < m; i++) R = Math.max(R, (rs[i] + rs[(i + 1) % m] + 170) / (2 * Math.sin(Math.PI / m)));
-    list.forEach((t, i) => { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); islandR.set(t, rs[i]); });
+    // 2-3 islands sit on a ring; more are spread over a sphere (Fibonacci) so the whole thing is round too
+    list.forEach((t, i) => {
+      if (m <= 3) { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); }
+      else { const y = 1 - (2 * (i + 0.5)) / m, rr = Math.sqrt(1 - y * y), th = i * 2.399963; islandOf.set(t, [Math.round(R * 1.15 * rr * Math.cos(th)), Math.round(R * 1.15 * y), Math.round(R * 1.15 * rr * Math.sin(th))]); }
+      islandR.set(t, rs[i]);
+    });
   }
   const posOf = (n) => {
-    if (!S.scope) { if (!splitOn()) return n.p; if (!islandOf.size) layoutIslands(S.focus ? S.focus.topics.filter((t) => topicInfo(t)) : [...new Set(allNodes.map(topicOf))].filter((t) => topicInfo(t))); }
-    const q = n.q || n.p, o = islandOf.get(topicOf(n)); return o && (S.scope || splitOn()) ? [q[0] + o[0], q[1] + o[1], q[2] + o[2]] : (S.scope ? q : n.p);
+    if (!S.scope) { if (!splitOn()) return n.k === "core" || !n.p ? n.p : [n.p[0], n.p[1] * (n.user ? 1 : ysAll()), n.p[2]]; if (!islandOf.size) layoutIslands(S.focus ? S.focus.topics.filter((t) => topicInfo(t)) : [...new Set(allNodes.map(topicOf))].filter((t) => topicInfo(t))); }
+    const q0 = n.q || n.p, t = topicOf(n), q = n.k === "hub" || n.k === "core" ? q0 : [q0[0], q0[1] * ysOf(t), q0[2]], o = islandOf.get(t); return o && (S.scope || splitOn()) ? [q[0] + o[0], q[1] + o[1], q[2] + o[2]] : (S.scope ? q : n.p);
   };
   function scopeChanged() {
     const c = colOf(S.scope);
@@ -252,7 +264,7 @@ export function mount(root, opts) {
   const tm = (name, f) => { const t0 = performance.now(), r = f(); (window.__scTimings ??= []).push([name, Math.round(performance.now() - t0)]); return r; };
   function syncUser({ persist = false } = {}) {
     for (const id of userIds) { raw.delete(id); adj.delete(id); nodeCache.delete(id); visuals.delete(id); }
-    userIds = new Set(); allNodes.length = baseAll; edges.length = baseEdgeCount; if (!S.scope) islandOf.clear();
+    userIds = new Set(); yScale.clear(); allNodes.length = baseAll; edges.length = baseEdgeCount; if (!S.scope) islandOf.clear();
     for (const [id, l] of adj) if (l.length && l.some((a) => a.e.user)) adj.set(id, l.filter((a) => !a.e.user));
     const g = tm("buildGraph", () => buildGraph(U, baseIds, baseByLabel, { radius: Math.round(baseExtent * 1.7) }));
     for (const n of g.nodes) { if (n.k !== "hub") n.sub = (U.topics.find((t) => "u:" + t.id === n.t)?.label ?? "") + (n.k === "spark" ? " · new idea" : ""); raw.set(n.id, n); adj.set(n.id, []); allNodes.push(n); userIds.add(n.id); }
@@ -651,19 +663,30 @@ export function mount(root, opts) {
     if (dim.length) pointMeshes.add(batch(dim, true));
     scene.add(pointMeshes);
   }
+  let lastIslandFit = "";
   function rebuildIslandTags() {
     const scene = fg.scene();
-    if (islandTags) { scene.remove(islandTags); islandTags.children.forEach((o) => { o.material.map?.dispose(); o.material.dispose(); }); islandTags = null; }
+    if (islandTags) { scene.remove(islandTags); islandTags.children.forEach((o) => { o.material.map?.dispose(); o.material.dispose(); o.geometry?.dispose(); }); islandTags = null; }
     if (circle) circle.visible = (!S.scope && !splitOn()) || S.scope === "eng" || S.scope === "phil";
     if (cur.ego || !islandOf.size || (!S.scope && !splitOn())) return;
     const shown = new Set(cur.nodes.map((g) => topicOf(g.raw || g))); islandTags = new THREE.Group();
     for (const [t, o] of islandOf) {
       if (!shown.has(t)) continue;
-      const info = topicInfo(t), r = islandR.get(t) || 60;
-      const tag = new SpriteText(info?.full || info?.label || t, Math.max(10, Math.min(48, (cur.extent || 440) / (mobile() ? 14 : 20))), S.dark ? "#f0e6d6" : "#2a2620"); tag.fontWeight = "600"; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
-      tag.position.set(o[0], o[1] + r * 0.62 + 30, o[2]); islandTags.add(tag);
+      const info = topicInfo(t), r = islandR.get(t) || 60, col = topicCol(t), sub = !!info?.parent;
+      const tag = new SpriteText(info?.full || info?.label || t, Math.max(10, Math.min(48, (cur.extent || 440) / (mobile() ? 14 : 20))) * (sub ? 0.85 : 1), "#ffffff"); tag.fontWeight = "700"; tag.backgroundColor = col; tag.padding = [4, 2]; tag.borderRadius = 4; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
+      tag.position.set(o[0], o[1] + r * 1.08 + 24, o[2]); islandTags.add(tag);
+      // a soft glass ball plus three great circles in the topic's colour (dashed for a subtopic)
+      const R = r * 1.04, ball = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 20), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: S.dark ? 0.07 : 0.06, depthWrite: false, side: THREE.BackSide, fog: false }));
+      ball.position.set(o[0], o[1], o[2]); ball.renderOrder = 1; islandTags.add(ball);
+      for (let ax = 0; ax < 3; ax++) {
+        const pts = []; for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2, c = Math.cos(a) * R, d = Math.sin(a) * R; pts.push(ax === 0 ? new THREE.Vector3(c, d, 0) : ax === 1 ? new THREE.Vector3(c, 0, d) : new THREE.Vector3(0, c, d)); }
+        const g = new THREE.BufferGeometry().setFromPoints(pts);
+        const ln = new THREE.Line(g, sub ? new THREE.LineDashedMaterial({ color: col, dashSize: 8, gapSize: 7, transparent: true, opacity: 0.55, depthWrite: false, fog: false }) : new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.4, depthWrite: false, fog: false }));
+        if (sub) ln.computeLineDistances(); ln.position.set(o[0], o[1], o[2]); ln.renderOrder = 1; islandTags.add(ln);
+      }
     }
-    scene.add(islandTags); window.__scIslands = () => islandTags.children.map((c) => [c.text, c.position.toArray().map(Math.round), c.visible]);
+    { const key = [...islandOf.keys()].join("|") + "|" + Math.round(cur.extent || 0); if (key !== lastIslandFit) { lastIslandFit = key; setTimeout(() => camCmd("fit"), 80); } }
+    scene.add(islandTags); window.__scIslands = () => islandTags.children.filter((c) => c.text).map((c) => [c.text, c.position.toArray().map(Math.round), c.visible]);
   }
   function rebuildEgoTags() {
     const scene = fg.scene();
@@ -1001,7 +1024,7 @@ export function mount(root, opts) {
       el.innerHTML = `<span class="gcbar-lab"><b>${isAsk ? "Answer" : "Path"}</b><span class="count">${n} ${isAsk ? "points lit" : "points on the route"}</span></span><button class="gcbtn" data-hl-clear>Clear</button>${fb}`;
       return;
     }
-    if (!S.selected && S.focus) { el.innerHTML = `<span class="gcbar-lab"><b>${esc(S.focus.label)}</b><span class="count">${S.focus.keep.size} ideas · ${S.focus.topics.length} topics · click one to see where it is shared</span></span>${fb}`; return; }
+    if (!S.selected && S.focus) { el.innerHTML = `<span class="gcbar-lab"><b>${esc(S.focus.label)}</b><span class="count">${S.focus.keep.size} ideas · ${S.focus.topics.length} topics · click one to see where it is shared</span></span><span class="tleg">${S.focus.topics.map((t) => `<i style="--c:${topicCol(t)}"></i>${esc(topicInfo(t)?.full || t)}`).join("")}</span>${fb}`; return; }
     if (!S.selected) {
       el.innerHTML = `<span class="gcbar-lab"><b>${esc(scopeLabel())}</b><span class="count">${scopeCount().toLocaleString()} points${cur.trimmed ? ` · showing the ${cur.trimmed.shown.toLocaleString()} best connected` : ""} · click one to focus</span></span>${!S.scope && S.lens === "explore" ? `<button class="gcbtn ghost sm" data-act="toggle-split" title="Show each topic as its own cluster, or all blended together">${S.split ? "Blend clusters" : "Separate clusters"}</button>` : ""}${colOf(S.scope) ? `<div class="seg"><button data-bridge="0" class="${S.bridgeOnly ? "" : "on"}">All points</button><button data-bridge="1" class="${S.bridgeOnly ? "on" : ""}">Bridges only</button></div>` : ""}${seg("whole")}`;
       return;
