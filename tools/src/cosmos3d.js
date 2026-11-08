@@ -1049,7 +1049,7 @@ export function mount(root, opts) {
   const controlsInit = () => {
     const c = fg.controls();
     fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 0);
-    c.enableDamping = true; c.dampingFactor = 0.08; c.minDistance = 40; c.maxDistance = 9000; c.screenSpacePanning = true; c.rotateSpeed = 0.7;
+    c.enableDamping = true; c.dampingFactor = 0.08; c.minDistance = 4; c.maxDistance = 9000; c.screenSpacePanning = true; c.rotateSpeed = 0.7;
     c.addEventListener("start", () => { if (S.autoRotate) setSpin(false); });
     c.addEventListener("change", () => wake(700));
     c.autoRotateSpeed = 0.32; c.autoRotate = S.autoRotate;
