@@ -1,0 +1,496 @@
+{
+ "v": 1,
+ "topics": [
+  {
+   "id": "modern-history",
+   "label": "Modern history",
+   "color": "#8c5a2e",
+   "desc": "Modern South Asian history: from Partition to the 1971 war and Operation Sindoor, one 2-hour lecture",
+   "parent": "",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  },
+  {
+   "id": "mh-roots",
+   "label": "Roots: 1947 to 1965",
+   "color": "#b8860b",
+   "desc": "Partition, Kashmir, East Pakistan, China, Tibet, the Cold War and the 1965 war",
+   "parent": "modern-history",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  },
+  {
+   "id": "mh-1971",
+   "label": "Bangladesh 1971",
+   "color": "#c0392b",
+   "desc": "Mujib, the 1970 election, Operation Searchlight, the refugee crisis, the 1971 war and the Shimla Agreement",
+   "parent": "modern-history",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  },
+  {
+   "id": "mh-sindoor",
+   "label": "Proxy war to Sindoor",
+   "color": "#5b8c1f",
+   "desc": "From the 1980s proxy war to Mumbai, Uri, Balakot, Pahalgam and Operation Sindoor in 2025",
+   "parent": "modern-history",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  },
+  {
+   "id": "mh-ideas",
+   "label": "Ideas and lessons",
+   "color": "#5a5a8a",
+   "desc": "Concepts the speaker uses to think about war, diplomacy and national issues",
+   "parent": "modern-history",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  }
+ ],
+ "notes": [
+  {
+   "id": "mh-a01",
+   "topic": "mh-roots",
+   "title": "Two countries and a widening gap",
+   "text": "In 1947 India and Pakistan came out of one land, and the speaker says a gap began to form almost at once; by 1948 the two were already in conflict. He asks listeners to understand 1971 through the earlier events that led to it. (≈0:11:04–0:12:04) Continues in [[Princely states: Hyderabad and Junagadh]] and [[Kashmir 1948 and the Line of Control]].",
+   "created": 1762600000000,
+   "updated": 1762600000000
+  },
+  {
+   "id": "mh-a02",
+   "topic": "mh-roots",
+   "title": "Princely states: Hyderabad and Junagadh",
+   "text": "Sardar Patel merged more than 500 princely states, mostly smoothly. The speaker names Hyderabad (taken in days by Operation Polo) and Junagadh, whose ruler's diwan, Shahnawaz Bhutto, tried to join Pakistan although 98 to 99 percent of the people were Hindu; the people voted for India and he fled. His son was Zulfikar Ali Bhutto, who later signed the Shimla Agreement. (≈0:12:04–0:13:30) See [[Shimla Agreement 1972]].",
+   "created": 1762600001000,
+   "updated": 1762600001000
+  },
+  {
+   "id": "mh-a03",
+   "topic": "mh-roots",
+   "title": "Dictatorships last long, governments short",
+   "text": "The speaker says Pakistan has had around 28 prime ministers and none has completed five years, while military rule lasted long: Ayub Khan from 1958 for about 11 years, then others. By contrast, India's democracy is in its blood. He says dynastic politics exists in both countries. Figures are as he states them. (≈0:13:08–0:15:30) Compare [[The 1970 Pakistan election]].",
+   "created": 1762600002000,
+   "updated": 1762600002000
+  },
+  {
+   "id": "mh-a04",
+   "topic": "mh-roots",
+   "title": "Kashmir 1948 and the Line of Control",
+   "text": "When tribal raiders attacked, Jammu and Kashmir's ruler signed accession to India and the army went in; war broke out and the territory was split along what became the Line of Control. The speaker says the new countries may not have understood the situation, and some think the army should have cleared more first. (≈0:15:30–0:16:30 and 0:22:30–0:23:02) Later echoed in [[Taking back POK]].",
+   "created": 1762600003000,
+   "updated": 1762600003000
+  },
+  {
+   "id": "mh-a05",
+   "topic": "mh-roots",
+   "title": "A country in two halves",
+   "text": "Pakistan had West Pakistan and East Pakistan (today's Bangladesh) with India in the middle. The speaker says the two wings were geographically far apart and hard to run, and that power sat with Punjab in the west. (≈0:16:03–0:18:00) This strain explains [[Urdu imposed on Bengal]].",
+   "created": 1762600004000,
+   "updated": 1762600004000
+  },
+  {
+   "id": "mh-a06",
+   "topic": "mh-roots",
+   "title": "Urdu imposed on Bengal",
+   "text": "Over 95 percent of East Pakistan spoke Bengali, but Pakistan's rulers, who had built the country on a Muslim identity, wanted Urdu as the only state language. The speaker describes Jinnah's speech in Dhaka and the anger it caused. (≈0:18:00–0:22:30) Led to the [[Language Movement of 1952]].",
+   "created": 1762600005000,
+   "updated": 1762600005000
+  },
+  {
+   "id": "mh-a07",
+   "topic": "mh-roots",
+   "title": "Language Movement of 1952",
+   "text": "Protests that began in 1948 grew into the Language Movement; 21 February 1952 saw deaths at Dhaka University and is still honoured as Martyrs' Day in Bangladesh and as International Mother Language Day. By 1954 Pakistan accepted Bengali as a language, and the 1956 constitution named both Urdu and Bengali. (≈0:31:02–0:34:03) Prepares the ground for [[Sheikh Mujib and the six demands]].",
+   "created": 1762600006000,
+   "updated": 1762600006000
+  },
+  {
+   "id": "mh-a08",
+   "topic": "mh-roots",
+   "title": "China, Marxism and left versus right",
+   "text": "Mao's communist revolution made China the People's Republic. The speaker explains left (Marxism, socialism, the poor and workers) and right (like the RSS and BJP) in simple terms, and says Nehru was a peaceful leftist who felt a natural attraction to China. (≈0:23:02–0:25:03) Continues in [[Non-alignment and the Cold War]].",
+   "created": 1762600007000,
+   "updated": 1762600007000
+  },
+  {
+   "id": "mh-a09",
+   "topic": "mh-roots",
+   "title": "Non-alignment and the Cold War",
+   "text": "The world was split between the USA (capitalism) and the USSR; Pakistan joined US-led alliances while Nehru, with leaders from Egypt to Yugoslavia, started the Non-Aligned Movement: walk our own way, stand in line with no one. The speaker calls this a sweet and idealistic stance that he later contrasts with [[Real politics]]. (≈0:25:03–0:28:05)",
+   "created": 1762600008000,
+   "updated": 1762600008000
+  },
+  {
+   "id": "mh-a10",
+   "topic": "mh-roots",
+   "title": "Nehru, Panchsheel and trust in China",
+   "text": "Nehru believed no one would fight a peaceful country. The speaker links this to Gandhi's advice of non-violent resistance, the Panchsheel principles, and Nehru's help to China at the UN. He adds Kautilya's idea that the neighbour's neighbour is the natural friend, which was not heeded then. (≈0:28:05–0:31:02) See [[Neighbour's neighbour is a natural friend]].",
+   "created": 1762600009000,
+   "updated": 1762600009000
+  },
+  {
+   "id": "mh-a11",
+   "topic": "mh-roots",
+   "title": "Tibet and the Dalai Lama",
+   "text": "In 1959 China took control of Tibet. The Dalai Lama fled to India and Nehru gave refuge; the Tibetan government in exile sits in Dharamshala (McLeodganj). The speaker says China was furious and links it to a rule he stresses: a promise made must be kept, comparing it to India sheltering Sheikh Hasina. (≈0:34:03–0:38:02) Part of the road to [[Cuban Missile Crisis and 1962]].",
+   "created": 1762600010000,
+   "updated": 1762600010000
+  },
+  {
+   "id": "mh-a12",
+   "topic": "mh-roots",
+   "title": "Cuban Missile Crisis and 1962",
+   "text": "In October 1962 the USSR and USA were locked in the Cuban Missile Crisis. The speaker says China chose this moment to attack India, because neither superpower would intervene, and took Aksai Chin (about 38,000 sq km) and areas near Arunachal (NEFA); the McMahon-line positions became today's Line of Actual Control. (≈0:38:02–0:43:00) Led to [[Nehru's death and a weak Delhi]].",
+   "created": 1762600011000,
+   "updated": 1762600011000
+  },
+  {
+   "id": "mh-a13",
+   "topic": "mh-roots",
+   "title": "Nehru's death and a weak Delhi",
+   "text": "The speaker says the defeat broke Nehru, who died in 1964; Lal Bahadur Shastri became PM without much public support, and Pakistan read India as weak. (≈0:42:05–0:45:00) Pakistan's reply was [[Ayub Khan and Operation Gibraltar]].",
+   "created": 1762600012000,
+   "updated": 1762600012000
+  },
+  {
+   "id": "mh-a14",
+   "topic": "mh-roots",
+   "title": "Ayub Khan and Operation Gibraltar",
+   "text": "General Ayub Khan, who took over in 1958 and made himself Field Marshal, thought India was weak after 1962 and had US weapons (Patton tanks). Operation Gibraltar planned to send fighters into Kashmir to turn the people against India; the speaker says it looked fine on paper and failed in practice. Pakistan attacked on 5 August 1965. (≈0:44:04–0:48:04) Continues in [[The 1965 war and Tashkent]].",
+   "created": 1762600013000,
+   "updated": 1762600013000
+  },
+  {
+   "id": "mh-a15",
+   "topic": "mh-roots",
+   "title": "The 1965 war and Tashkent",
+   "text": "The US and UK imposed an arms embargo on both sides. The speaker says India held about three times as much of Pakistan's land as Pakistan held of India's (the numbers in the transcript are garbled), yet the Tashkent deal returned everything. Shastri died in Tashkent; the speaker mentions doubts and the film Tashkent Files. Pakistan's textbooks say it won. (≈0:48:04–0:50:01 and 0:50:01–0:52:00) The loss fed [[Sheikh Mujib and the six demands]].",
+   "created": 1762600014000,
+   "updated": 1762600014000
+  },
+  {
+   "id": "mh-b01",
+   "topic": "mh-1971",
+   "title": "Sheikh Mujib and the six demands",
+   "text": "After 1965 Sheikh Mujibur Rahman of the Awami League put six demands: a name (Bangladesh), a separate currency, taxation and income controlled in the east, its own paramilitary, and the centre keeping only defence and foreign affairs. The speaker notes the east held two-thirds of the population yet shared one-third of resources. (≈0:50:01–0:55:00) Pakistan answered with force; see [[The 1970 Pakistan election]].",
+   "created": 1762600015000,
+   "updated": 1762600015000
+  },
+  {
+   "id": "mh-b02",
+   "topic": "mh-1971",
+   "title": "Indira Gandhi becomes Prime Minister",
+   "text": "In 1966 Congress leaders picked Indira Gandhi as a 'dumb doll' they could control instead of Morarji Desai. The 1967 election left her with a weak majority; she then took on her party and, in March 1971, won 352 of 518 Lok Sabha seats on the slogan 'remove poverty'. (≈0:55:00–0:58:00) Her first full-power months: [[Operation Searchlight and the refugee crisis]].",
+   "created": 1762600016000,
+   "updated": 1762600016000
+  },
+  {
+   "id": "mh-b03",
+   "topic": "mh-1971",
+   "title": "The 1970 Pakistan election",
+   "text": "In December 1970 the Awami League won about 160 of the 300 seats, almost all of East Pakistan, far ahead of Bhutto's PPP with 81. The speaker says Yahya Khan, who succeeded Ayub in 1969, and Bhutto refused to let a Bengali form the government; Awami leaders set up their own government. (≈0:58:00–1:02:04) Followed by [[Operation Searchlight and the refugee crisis]].",
+   "created": 1762600017000,
+   "updated": 1762600017000
+  },
+  {
+   "id": "mh-b04",
+   "topic": "mh-1971",
+   "title": "Operation Searchlight and the refugee crisis",
+   "text": "On 25 March 1971 the Pakistan army began Operation Searchlight in East Pakistan. About a crore (10 million) refugees entered India, putting West Bengal, Assam and Tripura under strain. The speaker notes this date is also the Citizenship Act cut-off. (≈1:02:04–1:04:03) Indira's answer is in [[Manekshaw says wait until November]].",
+   "created": 1762600018000,
+   "updated": 1762600018000
+  },
+  {
+   "id": "mh-b05",
+   "topic": "mh-1971",
+   "title": "Manekshaw says wait until November",
+   "text": "Indira asked General Sam Manekshaw to act in April. He said he would resign if forced, and gave reasons: monsoon would bog down tanks, summer would melt Himalayan snow and open Kashmir to attack, and tanks needed repair. He asked for time until about 15 November. The speaker calls it a model of speaking up honestly to the PM. (≈1:04:03–1:09:02) Meanwhile India built [[Real politics]] into its diplomacy.",
+   "created": 1762600019000,
+   "updated": 1762600019000
+  },
+  {
+   "id": "mh-b06",
+   "topic": "mh-1971",
+   "title": "Real politics",
+   "text": "The speaker says non-alignment is nice to hear, but in a war you cannot be part of no one. International politics runs on reality, not ideals; this is realism or real politics. Indira concluded that India needed a superpower on its side. (≈1:09:02–1:10:06) Used in [[The Indo-Soviet treaty of 1971]].",
+   "created": 1762600020000,
+   "updated": 1762600020000
+  },
+  {
+   "id": "mh-b07",
+   "topic": "mh-1971",
+   "title": "The Indo-Soviet treaty of 1971",
+   "text": "In August 1971 India signed a long-term friendship treaty with the USSR, which the speaker explains as: if anyone touches India, the USSR stands behind it. The transcript is unclear on the years of the treaty. (≈1:10:06–1:12:01) Supported by [[Diplomacy tour and Nixon]].",
+   "created": 1762600021000,
+   "updated": 1762600021000
+  },
+  {
+   "id": "mh-b08",
+   "topic": "mh-1971",
+   "title": "Diplomacy tour and Nixon",
+   "text": "Indira spoke to many countries, including neighbours, Gulf states, Yugoslavia and Egypt, and received broad sympathy. In November she met Nixon and Kissinger, who disliked her; the speaker says declassified records show what they said afterward. (≈1:10:06–1:14:01) Tied to [[Letting Pakistan start the war]].",
+   "created": 1762600022000,
+   "updated": 1762600022000
+  },
+  {
+   "id": "mh-b09",
+   "topic": "mh-1971",
+   "title": "Letting Pakistan start the war",
+   "text": "The speaker says the Indian side decided it was better that the war be started by Pakistan, because history records who started a war and India sees itself as peaceful. On 2 December (as he says) Yahya Khan began the war. (≈1:13:03–1:14:01) Continues in [[Pakistan copies Israel 1967]].",
+   "created": 1762600023000,
+   "updated": 1762600023000
+  },
+  {
+   "id": "mh-b10",
+   "topic": "mh-1971",
+   "title": "Pakistan copies Israel 1967",
+   "text": "Yahya Khan hoped to repeat Israel's six-day pre-emptive strike of 1967, expecting US and Chinese backing. The speaker compares the planning to a UPSC aspirant's over-optimistic marks plan and says the war ended in 13 days. (≈1:14:01–1:17:04) See [[Thirteen days and the surrender]].",
+   "created": 1762600024000,
+   "updated": 1762600024000
+  },
+  {
+   "id": "mh-b11",
+   "topic": "mh-1971",
+   "title": "Thirteen days and the surrender",
+   "text": "The war ended on 16 December 1971 with Pakistan's surrender in Dhaka; the speaker mentions a meeting where Pakistani commanders were deciding whether to surrender, and about 93,000 troops in Indian custody. Bangladesh was born, and Indira's reply to Nixon's letter was famously cool. (≈1:17:04–1:20:06) Checked against [[Seventh Fleet and the USSR]].",
+   "created": 1762600025000,
+   "updated": 1762600025000
+  },
+  {
+   "id": "mh-b12",
+   "topic": "mh-1971",
+   "title": "Seventh Fleet and the USSR",
+   "text": "The USA sent its Seventh Fleet into the Bay of Bengal, which the speaker reads as a nuclear signal. The USSR sent its own ships; both stood off and the war went on to Dhaka. He says the Soviet backing did not win the war but ensured no one interfered. (≈1:20:06–1:22:00) The result is told in [[Shimla Agreement 1972]].",
+   "created": 1762600026000,
+   "updated": 1762600026000
+  },
+  {
+   "id": "mh-b13",
+   "topic": "mh-1971",
+   "title": "Shimla Agreement 1972",
+   "text": "In July 1972 Indira Gandhi and Zulfikar Ali Bhutto met in Shimla, with Benazir Bhutto accompanying her father. India held about 93,000 prisoners of war and some Pakistani territory; the final deal returned them, while both sides agreed to respect the Line of Control and settle issues bilaterally. (≈1:22:00–1:24:00 and 1:29:03–1:30:01) Linked with [[Taking back POK]].",
+   "created": 1762600027000,
+   "updated": 1762600027000
+  },
+  {
+   "id": "mh-b14",
+   "topic": "mh-1971",
+   "title": "Taking back POK",
+   "text": "The speaker asks why India did not take Pakistan-occupied Kashmir in 1971. His reasons: the USSR said it could not go further and the refugee reason was gone; there was no popular demand in POK like the one in Bengal; the terrain favours defenders on the heights; and the US and China had made clear that Pakistan had suffered enough. Bhutto also used the prisoners as bargaining pressure. (≈1:25:01–1:30:01) Compare the same question in 2025: [[Why POK cannot be taken by a quick war]].",
+   "created": 1762600028000,
+   "updated": 1762600028000
+  },
+  {
+   "id": "mh-c01",
+   "topic": "mh-sindoor",
+   "title": "Cuts that bleed from everywhere",
+   "text": "After the defeat of 1971 the speaker says Pakistan's approach changed: General Zia's famous idea was to bleed India through a thousand cuts, so from about 1980 the contest became proxy war. (≈1:30:01–1:31:07) See [[Proxy war]].",
+   "created": 1762600029000,
+   "updated": 1762600029000
+  },
+  {
+   "id": "mh-c02",
+   "topic": "mh-sindoor",
+   "title": "War is not PUBG",
+   "text": "The speaker warns that people who treat war like a game or an IPL over, and TV channels that claim Lahore and Karachi are won, do not understand the cost. (≈1:31:07–1:33:06) Compare [[War as the last resort]].",
+   "created": 1762600030000,
+   "updated": 1762600030000
+  },
+  {
+   "id": "mh-c03",
+   "topic": "mh-sindoor",
+   "title": "Vietnam and Ukraine: the price of war",
+   "text": "America fought Vietnam from the mid-1950s to 1975 and lost; the speaker says tens of thousands of US soldiers died (the figure in the transcript is garbled). Russia has fought Ukraine since 2022 and he says it is really a war against NATO. His casualty numbers are rough estimates and far higher than most published ones, so check them. (≈1:33:06–1:36:07)",
+   "created": 1762600031000,
+   "updated": 1762600031000
+  },
+  {
+   "id": "mh-c04",
+   "topic": "mh-sindoor",
+   "title": "Mumbai 2008 and a diplomatic response",
+   "text": "In 2008 attackers killed about 175 people in Mumbai; Ajmal Kasab was the survivor. The Manmohan Singh government responded diplomatically, compiling a dossier for the world. The speaker says diplomacy may not move groups that will not listen. (≈1:37:00–1:40:04) The shift came with [[Uri 2016 and the surgical strike]].",
+   "created": 1762600032000,
+   "updated": 1762600032000
+  },
+  {
+   "id": "mh-c05",
+   "topic": "mh-sindoor",
+   "title": "Why terror groups keep recruiting",
+   "text": "Groups like Jaish-e-Mohammed draw on large numbers of unemployed and poorly educated young people, where religious education replaces scientific education and there are no jobs. The speaker says drugs and terrorism then become a business, as happened in Afghanistan. (≈1:40:04–1:41:04)",
+   "created": 1762600033000,
+   "updated": 1762600033000
+  },
+  {
+   "id": "mh-c06",
+   "topic": "mh-sindoor",
+   "title": "Uri 2016 and the surgical strike",
+   "text": "After the 2016 Uri attack on soldiers, the Modi government tried something new: commandos crossed the Line of Control, struck terrorists and returned. The speaker says the aim is to raise the cost so that people think ten times before attacking. (≈1:41:04–1:45:06) Followed by [[Pulwama and Balakot 2019]].",
+   "created": 1762600034000,
+   "updated": 1762600034000
+  },
+  {
+   "id": "mh-c07",
+   "topic": "mh-sindoor",
+   "title": "Pulwama and Balakot 2019",
+   "text": "The Pulwama attack killed paramilitary personnel. India then bombed a camp at Balakot in Khyber Pakhtunkhwa, about 50 km from the border, with around 12 planes; the speaker notes claims of about 400 dead and that facts rarely come out fully. (≈1:45:06–1:47:03) Escalated in [[Pahalgam and Operation Sindoor]].",
+   "created": 1762600035000,
+   "updated": 1762600035000
+  },
+  {
+   "id": "mh-c08",
+   "topic": "mh-sindoor",
+   "title": "Pahalgam and Operation Sindoor",
+   "text": "In 2025 militants killed 26 civilians at Pahalgam. The speaker says action was expected but the government never said it was going to war. On the night of 6 to 7 May, India hit nine camps, including Sialkot and Bahawalpur-side targets and places in POK, inside Pakistan and not only near the Line of Control. (≈1:48:00–1:50:00) Technical details in [[Standoff strikes and AI-driven defence]].",
+   "created": 1762600036000,
+   "updated": 1762600036000
+  },
+  {
+   "id": "mh-c09",
+   "topic": "mh-sindoor",
+   "title": "Standoff strikes and AI-driven defence",
+   "text": "The speaker says missiles were launched from far inside India to hit targets 50 to 100 km away, without sending planes in, which is why he calls it a new level compared with 2019. He says more than 100 terrorists were reported dead and India tested its air defence. (≈1:49:00–1:51:05)",
+   "created": 1762600037000,
+   "updated": 1762600037000
+  },
+  {
+   "id": "mh-c10",
+   "topic": "mh-sindoor",
+   "title": "Focused, measured, non-escalatory",
+   "text": "India described its action as focused, measured and non-escalatory: it targeted terror camps, matched the scale of Pakistan's attack, and said it would escalate only if Pakistan did. The speaker says civil-defence sirens signalled readiness, not war. (≈1:51:05–1:53:06) See [[Real politics]].",
+   "created": 1762600038000,
+   "updated": 1762600038000
+  },
+  {
+   "id": "mh-c11",
+   "topic": "mh-sindoor",
+   "title": "Why POK cannot be taken by a quick war",
+   "text": "The speaker says 1971 followed seven to eight months of preparation, with Soviet backing and a refugee crisis. In 2025 there was no such build-up, and the world is multipolar, so a 14-day war to take POK was never the plan. (≈1:53:06–1:54:04) Read together with [[Taking back POK]] and [[A multipolar world]].",
+   "created": 1762600039000,
+   "updated": 1762600039000
+  },
+  {
+   "id": "mh-c12",
+   "topic": "mh-sindoor",
+   "title": "Was the goal achieved?",
+   "text": "The stated goal was to hit where terrorists were trained. India struck nine sites, tested its air defence, hit drones and, per the speaker, damaged Nur Khan airbase. He says Pakistan attacked civilians, which he sees as a sign of inferiority. (≈1:56:04–1:58:05)",
+   "created": 1762600040000,
+   "updated": 1762600040000
+  },
+  {
+   "id": "mh-c13",
+   "topic": "mh-sindoor",
+   "title": "Social media and TV confusion",
+   "text": "The speaker says confusion this time came from social media and competing private TV channels, with game clips shown as real footage. He says journalism should put facts before trickery. (≈1:58:05–2:00:01) The mood met reality at [[Ceasefire and the first phone call]].",
+   "created": 1762600041000,
+   "updated": 1762600041000
+  },
+  {
+   "id": "mh-c14",
+   "topic": "mh-sindoor",
+   "title": "Ceasefire and the first phone call",
+   "text": "The speaker says the first call for talks came from Pakistan's DGMO and India agreed to a ceasefire; US President Trump tweeted about it at 5:33 pm, before the Indian statement, which worried many Indians. He uses it to teach the first rule of negotiation: whoever sends the first message is the one asking for talks. (≈2:00:01–2:04:02) See [[First message in negotiation]].",
+   "created": 1762600042000,
+   "updated": 1762600042000
+  },
+  {
+   "id": "mh-c15",
+   "topic": "mh-sindoor",
+   "title": "The war of narrative",
+   "text": "The speaker says India was weak in the war of narrative: Indian leaders should have given the public a clear 'we have won' moment, such as a press conference earlier, instead of a delayed statement. He still believes the main goals were achieved. (≈2:04:02–2:06:01) Compare [[Expectations and sadness]].",
+   "created": 1762600043000,
+   "updated": 1762600043000
+  },
+  {
+   "id": "mh-d01",
+   "topic": "mh-ideas",
+   "title": "Stay non-partisan",
+   "text": "The speaker tells UPSC aspirants not to speak as a BJP or Congress spokesperson but as citizens: objectivity, neutrality and impartiality are civil-service values in the ethics paper. He asks them to judge facts first. (≈0:00:00–0:05:07) Compare [[Look at history correctly]].",
+   "created": 1762600044000,
+   "updated": 1762600044000
+  },
+  {
+   "id": "mh-d02",
+   "topic": "mh-ideas",
+   "title": "Operation versus war",
+   "text": "He separates war (1948, 1962, 1965, 1971, all between countries) from smaller operations such as the surgical strike and Balakot. His rule: do not compare an operation directly with a war. (≈0:06:04–0:09:05) See [[Proxy war]].",
+   "created": 1762600045000,
+   "updated": 1762600045000
+  },
+  {
+   "id": "mh-d03",
+   "topic": "mh-ideas",
+   "title": "Proxy war",
+   "text": "A proxy war is one where a country avoids open war and works through others to produce the same effect. The speaker names the attacks of 2008, 2016 and 2019 as examples, and says nuclear states fall back on this because direct war is too costly. (≈0:07:01–0:09:05 and 1:36:07–1:37:00) See [[Cuts that bleed from everywhere]].",
+   "created": 1762600046000,
+   "updated": 1762600046000
+  },
+  {
+   "id": "mh-d04",
+   "topic": "mh-ideas",
+   "title": "Real politics",
+   "text": "International politics does not run on ideals; it runs on reality. The speaker uses 1971 to show that non-alignment had to give way to a treaty with the USSR when war came. (≈1:09:02–1:10:06) The same lesson appears in [[Non-alignment and the Cold War]].",
+   "created": 1762600047000,
+   "updated": 1762600047000
+  },
+  {
+   "id": "mh-d05",
+   "topic": "mh-ideas",
+   "title": "Neighbour's neighbour is a natural friend",
+   "text": "Citing Kautilya, the speaker says a neighbour is not your natural friend while the neighbour's neighbour is. He links it to China and Pakistan being friends because both have India as a border state. (≈0:30:01–0:31:02 and 0:55:00–0:56:00)",
+   "created": 1762600048000,
+   "updated": 1762600048000
+  },
+  {
+   "id": "mh-d06",
+   "topic": "mh-ideas",
+   "title": "A multipolar world",
+   "text": "In 1971 the world was split between two blocs, but today it is multipolar: America, China, Russia, Europe, Israel and India are separate powers with different relationships. So he says the old bloc logic cannot simply be replayed. (≈1:54:04–1:55:01) Read with [[Why POK cannot be taken by a quick war]].",
+   "created": 1762600049000,
+   "updated": 1762600049000
+  },
+  {
+   "id": "mh-d07",
+   "topic": "mh-ideas",
+   "title": "War as the last resort",
+   "text": "The speaker says war is justified only when there is no other way, because both sides usually lose and the money is better spent on technology, education and health. People tell the story of victory, but those who lose families do not win. (≈1:43:05–1:44:01 and 1:56:04–1:57:05) See [[War is not PUBG]].",
+   "created": 1762600050000,
+   "updated": 1762600050000
+  },
+  {
+   "id": "mh-d08",
+   "topic": "mh-ideas",
+   "title": "Put yourself in the PM's chair",
+   "text": "The speaker asks listeners to imagine being PM in 1971 and in 2025 after hearing the facts, and says that once you understand them, your opinions on leaders become less extreme. (≈0:09:05–0:10:02 and 0:10:02–0:11:04)",
+   "created": 1762600051000,
+   "updated": 1762600051000
+  },
+  {
+   "id": "mh-d09",
+   "topic": "mh-ideas",
+   "title": "First message in negotiation",
+   "text": "In any negotiation, he says, the one who sends the first message is the one seeking talks. India's position, he argues, was clear because the first call came from Pakistan. (≈2:01:04–2:02:06) Used in [[Ceasefire and the first phone call]].",
+   "created": 1762600052000,
+   "updated": 1762600052000
+  },
+  {
+   "id": "mh-d10",
+   "topic": "mh-ideas",
+   "title": "Expectations and sadness",
+   "text": "The Buddha's teaching that sadness comes from exceeded expectations is used to explain public disappointment: the government never promised war, but social media raised expectations. (≈1:59:02–2:00:01) Compare [[The war of narrative]].",
+   "created": 1762600053000,
+   "updated": 1762600053000
+  },
+  {
+   "id": "mh-d11",
+   "topic": "mh-ideas",
+   "title": "Look at history correctly",
+   "text": "The speaker's conclusion is to read history and facts correctly instead of arguing for one party, and to stay free of confusion and sadness. He adds that countries live for thousands of years and may have another chance later. (≈2:06:01–2:07:24)",
+   "created": 1762600054000,
+   "updated": 1762600054000
+  }
+ ],
+ "bridges": [],
+ "dismissed": [],
+ "cols": [],
+ "gone": {}
+}

@@ -1162,7 +1162,7 @@ export function mount(root, opts) {
     return `<p>${esc(n.d)}</p>${task === "why" && rel.length ? `<ul>${rel.slice(0, 5).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}`;
   }
   // ── "What the speaker says": the transcript behind a note (English + Bengali) and AI that explains it further ──────
-  const SRC_MAP = { "u:reservation-what-why": ["what", "Lecture · Reservation: what and why"], "u:reservation-nehru-ambedkar": ["nehru", "Podcast · UGC rules, Ambedkar and Nehru"], "u:reservation-generations": ["vikas", "Clip · Generations and casteism"] };
+  const SRC_MAP = { "u:reservation-what-why": ["what", "Lecture · Reservation: what and why"], "u:reservation-nehru-ambedkar": ["nehru", "Podcast · UGC rules, Ambedkar and Nehru"], "u:reservation-generations": ["vikas", "Clip · Generations and casteism"], "u:mh-roots": ["modern", "Lecture · 1971 and 2025"], "u:mh-1971": ["modern", "Lecture · 1971 and 2025"], "u:mh-sindoor": ["modern", "Lecture · 1971 and 2025"], "u:mh-ideas": ["modern", "Lecture · 1971 and 2025"] };
   const SRCD = new Map(), SRCV = new Map(), SRCAI = new Map();
   let srcLang = read("sc_srclang") || "en";
   const tsec = (t) => { const p = t.split(":").map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; };
@@ -2074,7 +2074,7 @@ export function mount(root, opts) {
     closeModal(); afterDataChange({ scope: "u:" + t.id }); toast(`Copied ${map.size} note${map.size === 1 ? "" : "s"} into “${t.label}”.`, 9000, true);
   }
   // ready-made topic packs (assets/pack-<name>.json, same format as a backup file); adding twice never duplicates
-  const PACKS = { reservation: { label: "Reservation", sub: "3 subtopics · 55 ideas from three talks by Vikas Divyakirti", scope: "u:reservation" } };
+  const PACKS = { reservation: { label: "Reservation", sub: "3 subtopics · 55 ideas from three talks by Vikas Divyakirti", scope: "u:reservation" }, "modern-history": { label: "Modern history", sub: "4 subtopics · 55 ideas from a 2-hour lecture on 1971 and Operation Sindoor", scope: "u:modern-history" } };
   async function addPack(name, { quiet = false } = {}) {
     const meta = PACKS[name]; if (!meta) return;
     let j; try { const r = await fetch(`assets/pack-${name}.json`, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); j = await r.json(); } catch (e) { toast("Could not load the pack. Check your connection and try again."); return; }
