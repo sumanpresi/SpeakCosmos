@@ -43,7 +43,7 @@ export function normalize(raw) {
     if (Array.isArray(n.p) && n.p.length === 3 && n.p.every(Number.isFinite)) note.p = n.p;
     s.notes.push(note);
   }
-  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 200), t: +b.t || 0, ...(b.auto ? { auto: true, batch: str(b.batch, 24) } : {}) });
+  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 800), t: +b.t || 0, ...(b.auto ? { auto: true, batch: str(b.batch, 24) } : {}) });
   s.dismissed = [...new Set((Array.isArray(raw.dismissed) ? raw.dismissed : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 170)))].slice(0, 5000);
   const colIds = new Set();
   for (const c of Array.isArray(raw.cols) ? raw.cols : []) {

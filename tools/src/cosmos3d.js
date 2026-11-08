@@ -713,6 +713,16 @@ export function mount(root, opts) {
   }
   const bdesc = (n) => String(n.text ? plainTxt(n.text) : n.d || "").replace(/\s+/g, " ").trim();
   const plainTxt = (t) => String(t).replace(/\[\[([^\]|]+)\|?([^\]]*)\]\]/g, (m, a, b) => b || a).replace(/[#*_`>]/g, "");
+  const noteLinks = (t) => esc(t).replace(/\[\[([^\]]{1,120})\]\]/g, (m, x) => { const id = resolveTitle(x.trim()); return id && raw.has(id) ? `<button class="bd-wl" data-bd="go" data-id="${esc(id)}">${esc(x.trim())}</button>` : `<span class="bd-wl off">${esc(x.trim())}</span>`; });
+  function bridgeNoteHtml(own, cur2) {
+    if (own) return own.note ? `<div class="bd-note"><span>Your note</span><p>${noteLinks(own.note).replace(/\n/g, "<br>")}</p></div>` : `<button class="bd-addnote" data-bd="edit">+ Add your note or links to this connection</button>`;
+    return `<div class="bd-note off"><p>This connection comes from a [[link]] written inside a note, so it is edited there.</p></div>`;
+  }
+  let arcOwn = null;
+  function bridgeEditForm(own) {
+    const opts = ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].map((r) => `<option value="${r}" ${own.rel === r ? "selected" : ""}>${esc(REL[r].verb)}</option>`).join("");
+    return `<form class="bd-edit" id="bdEdit"><label>How are they connected?<select name="rel">${opts}</select></label><label>Your note about this connection<textarea name="note" maxlength="800" rows="4" placeholder="Why do these two ideas connect? Type [[Title]] to link another idea.">${esc(own.note || "")}</textarea></label><div class="bd-row"><button type="submit" class="gcbtn primary">Save</button><button type="button" class="gcbtn" data-bd="edit-cancel">Cancel</button></div></form>`;
+  }
   let arcPin = -1, bridgeEl = null;
   function closeBridge() { arcPin = -1; if (bridgeEl) bridgeEl.hidden = true; root.classList.remove("has-bridge"); setArcHot(-1); }
   function openBridge(i) {
@@ -720,10 +730,26 @@ export function mount(root, opts) {
     arcPin = i; setArcHot(i); hideArcTip();
     if (!bridgeEl) {
       bridgeEl = document.createElement("aside"); bridgeEl.className = "gc-bridge card"; bridgeEl.id = "gcBridge"; root.appendChild(bridgeEl);
+      bridgeEl.addEventListener("submit", (ev) => {
+        const f = ev.target.closest("#bdEdit"); if (!f) return; ev.preventDefault();
+        const cur2 = arcList[arcPin]; if (!cur2) return; const e = cur2.l;
+        const o = U.bridges.find((x) => (x.a === e.s && x.b === e.t && x.rel === e.rel) || (x.a === e.t && x.b === e.s && x.rel === e.rel)); if (!o) return;
+        const rel = f.rel.value, note = f.note.value.trim().slice(0, 800), a0 = o.a, b0 = o.b;
+        if (rel !== o.rel && U.bridges.some((x) => x !== o && x.rel === rel && ((x.a === a0 && x.b === b0) || (x.a === b0 && x.b === a0)))) { toast("These two ideas are already connected that way."); return; }
+        checkpoint("edit connection");
+        if (rel !== o.rel) tombB({ ...o });
+        o.rel = rel; o.note = note; o.t = Date.now(); delete o.auto;
+        closeBridge(); afterDataChange(); toast("Connection updated.", 6000, true);
+        setTimeout(() => { const i = arcList.findIndex((x) => (x.l.s === a0 && x.l.t === b0) || (x.l.s === b0 && x.l.t === a0)); if (i >= 0) { setArcHot(i); openBridge(i); } }, 120);
+      });
       bridgeEl.addEventListener("click", (ev) => {
         const b = ev.target.closest("[data-bd]"); if (!b) return; ev.stopPropagation(); const cur2 = arcList[arcPin]; if (!cur2) return;
         const act = b.dataset.bd, A = cur2.a.raw, B = cur2.b.raw;
+        const ownOf = () => { const e = cur2.l; return U.bridges.find((x) => (x.a === e.s && x.b === e.t && x.rel === e.rel) || (x.a === e.t && x.b === e.s && x.rel === e.rel)); };
         if (act === "close") closeBridge();
+        else if (act === "go") { const id = b.dataset.id; closeBridge(); select(id); }
+        else if (act === "edit") { const o = ownOf(); if (!o) return; bridgeEl.querySelector("#bdNote").innerHTML = bridgeEditForm(o); bridgeEl.querySelector("#bdEdit textarea").focus(); }
+        else if (act === "edit-cancel") { bridgeEl.querySelector("#bdNote").innerHTML = bridgeNoteHtml(ownOf()); }
         else if (act === "open-a" || act === "open-b") { const id = act === "open-a" ? A.id : B.id; closeBridge(); select(id); }
         else if (act === "focus-pair") { const ids = [A.id, B.id]; closeBridge(); setFocus({ label: clip(A.l, 22) + " ↔ " + clip(B.l, 22), nodes: new Set(ids), nbrs: true, idea: A.id }); }
         else if (act === "lineage") { const id = A.id; closeBridge(); S.selected = id; L.chain = "cross"; L.focus = id; L.back = []; L.more.clear(); L.off = {}; L.view = { x: 0, y: 0, k: 1 }; setLens("lineage"); syncTabs(); renderLineage(); }
@@ -744,7 +770,7 @@ export function mount(root, opts) {
     const sa = new Set(tokens(A.l + " " + bdesc(A))), shared = [...new Set(tokens(B.l + " " + bdesc(B)).filter((w) => sa.has(w) && w.length > 3))].slice(0, 7);
     const own = U.bridges.find((x) => (x.a === a.l.s && x.b === a.l.t && x.rel === a.l.rel) || (x.a === a.l.t && x.b === a.l.s && x.rel === a.l.rel));
     const side = (n, t, key) => `<section class="bd-side" style="--c:${topicCol(t)}"><div class="bd-top"><i></i><span>${esc(topicInfo(t)?.full || topicInfo(t)?.label || t)}</span><em>${esc(KIND[n.k]?.label.replace(/s$/, "") || "")}</em></div><h3>${esc(n.l)}</h3><p>${esc(clip(bdesc(n), 560) || "No description yet.")}</p><button class="gcbtn" data-bd="open-${key}">Open full details</button></section>`;
-    bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}${own?.note ? `<div class="bd-note">“${esc(clip(own.note, 160))}”</div>` : ""}</div>${side(B, tb, "b")}</div><div class="bd-ai"><button class="gcbtn" data-bd="explain">✨ Explain this connection</button><button class="gcbtn" data-bd="explain-bn" lang="bn">বাংলায়</button><div class="bd-ans" aria-live="polite"></div></div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
+    bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}<div class="bd-note-box" id="bdNote">${bridgeNoteHtml(own)}</div></div>${side(B, tb, "b")}</div><div class="bd-ai"><button class="gcbtn" data-bd="explain">✨ Explain this connection</button><button class="gcbtn" data-bd="explain-bn" lang="bn">বাংলায়</button><div class="bd-ans" aria-live="polite"></div></div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${own ? `<button class="gcbtn" data-bd="edit">✎ Edit connection</button>` : ""}${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
     bridgeEl.hidden = false; root.classList.add("has-bridge"); wake(1500);
   }
   let arcTags = [];
@@ -2111,6 +2137,7 @@ export function mount(root, opts) {
     return true;
   }
   window.__scSel = (label) => { const n = allNodes.find((x) => x.l === label); if (n) select(n.id); return !!n; };
+  window.__scAddBridge = (a, b, rel, note) => { const ok = addBridge(a, b, rel || "RELATED", note || ""); afterDataChange(); return ok; };
   window.__scFocusIdea = (label) => { const n = allNodes.find((x) => plain(x) && x.l === label); if (n) { select(n.id); focusIdea(n.id); } return !!S.focus; }; window.__scState = () => ({ focus: S.focus && S.focus.keep.size, lens: S.lens, chain: L.chain, lf: L.focus });
   function clearFocus() {
     if (!S.focus) return; S.mode = S.focus.prevMode || "focus"; S.focus = null; S.selected = null; islandOf.clear(); scopeChanged(); syncTabs();
@@ -2485,7 +2512,7 @@ export function mount(root, opts) {
       const c = addNotes(tk, notes); closeModal(); afterDataChange({ scope: "u:" + tk }); toast(`Added ${c} note${c === 1 ? "" : "s"}.`);
     }
   });
-  const addBridge = (a, b, rel, note = "") => { if (!a || !b || a === b || U.bridges.some((x) => x.rel === rel && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))) return false; U.bridges.push({ a, b, rel, note: String(note).slice(0, 200), t: Date.now() }); return true; };
+  const addBridge = (a, b, rel, note = "") => { if (!a || !b || a === b || U.bridges.some((x) => x.rel === rel && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))) return false; U.bridges.push({ a, b, rel, note: String(note).slice(0, 800), t: Date.now() }); return true; };
   pop.addEventListener("change", (e) => {
     const t = e.target;
     if (t.dataset?.cntopic) { t.checked ? CN.topics.add(t.dataset.cntopic) : CN.topics.delete(t.dataset.cntopic); CN.res = null; CN.cmp = null; CN.ai = ""; renderConn(); }
