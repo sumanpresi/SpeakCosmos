@@ -449,6 +449,7 @@ export function mount(root, opts) {
   const marks = { sel: null, pointLabels: new Map() };
   let cur = { nodes: [], links: [], ego: null };
   let awakeUntil = 0, sleeping = false, raf = 0, destroyed = false, startLoop = null;
+  const FS = (() => { const d = { topic: 1, bridge: 1, node: 1 }; try { const j = JSON.parse(localStorage.getItem("sc_fs") || "{}"); for (const k in d) if (+j[k] >= 0.3 && +j[k] <= 2.5) d[k] = +j[k]; } catch (e) {} return d; })();
   const labelScale = () => (mobile() ? 1.6 : 1.3) * (cur.ego && cur.ego.count > 14 ? 0.62 : 1);
 
   const fg = new ForceGraph3D(stage, { controlType: "orbit", rendererConfig: { antialias: !low, powerPreference: "default", alpha: false } })
@@ -614,7 +615,7 @@ export function mount(root, opts) {
       const pv = visuals.get(id);
       if (!pv || marks.pointLabels.has(id)) continue;
       const txt = raw.get(id).l.replace(/…$/, "");
-      const l = new SpriteText(txt.length > 30 ? txt.slice(0, 29) + "…" : txt, 4.6 * (live.ego ? labelScale() : 1), dk ? "#edeae4" : "#1b1a17");
+      const l = new SpriteText(txt.length > 30 ? txt.slice(0, 29) + "…" : txt, 4.6 * (live.ego ? labelScale() : 1) * FS.node, dk ? "#edeae4" : "#1b1a17");
       l.fontFace = font; l.fontWeight = "600"; l.strokeWidth = 0.9; l.strokeColor = dk ? "rgba(13,12,11,0.85)" : "rgba(245,244,241,0.9)";
       l.material.depthWrite = false; l.material.depthTest = false; l.renderOrder = 11; l.position.y = pv.r + 5;
       pv.group.add(l); marks.pointLabels.set(id, l);
@@ -790,7 +791,7 @@ export function mount(root, opts) {
     scene.add(arcTube); scene.add(arcPulse);
     { // the two topics this bridge joins: big labels in each topic's colour at the two ends, and the line itself in a bright accent
       arcTube.material.color.set(S.dark ? "#ffd23f" : "#e8590c"); arcTube.material.opacity = 0.95;
-      const sz = Math.max(14, Math.min(60, (cur.extent || 440) / (mobile() ? 9 : 13)));
+      const sz = Math.max(8, Math.min(60, (cur.extent || 440) / (mobile() ? 16 : 24))) * FS.bridge;
       [[a.a.raw, 0], [a.b.raw, 29]].forEach(([nd, k]) => {
         const t = topicOf(nd), info = topicInfo(t), col = topicCol(t);
         const tag = new SpriteText(info?.full || info?.label || t, sz, "#ffffff"); tag.fontWeight = "800"; tag.backgroundColor = col; tag.padding = [5, 3]; tag.borderRadius = 6; tag.borderWidth = 1.2; tag.borderColor = S.dark ? "#ffffff" : "#1b1a17";
@@ -893,7 +894,7 @@ export function mount(root, opts) {
     for (const [t, o] of islandOf) {
       if (!shown.has(t)) continue;
       const info = topicInfo(t), r = islandR.get(t) || 60, col = topicCol(t), sub = !!info?.parent;
-      const tag = new SpriteText(info?.full || info?.label || t, Math.max(10, Math.min(48, (cur.extent || 440) / (mobile() ? 14 : 20))) * (sub ? 0.85 : 1), "#ffffff"); tag.fontWeight = "700"; tag.backgroundColor = col; tag.padding = [4, 2]; tag.borderRadius = 4; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
+      const tag = new SpriteText(info?.full || info?.label || t, Math.max(10, Math.min(48, (cur.extent || 440) / (mobile() ? 14 : 20))) * (sub ? 0.85 : 1) * FS.topic, "#ffffff"); tag.fontWeight = "700"; tag.backgroundColor = col; tag.padding = [4, 2]; tag.borderRadius = 4; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
       tag.position.set(o[0], o[1] + r * 1.08 + 24, o[2]); islandTags.add(tag);
       // a soft glass ball plus three great circles in the topic's colour (dashed for a subtopic)
       const R = r * 1.04, ball = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 20), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: S.dark ? 0.07 : 0.06, depthWrite: false, side: THREE.BackSide, fog: false }));
@@ -1002,7 +1003,7 @@ export function mount(root, opts) {
         else if (e && forceAll) t = 0.9;
         else { v.group.getWorldPosition(p); t = 0.9 * (1 - smooth(320, 600, p.distanceTo(cam.position))); }
         if (v.labelOpacity === t) continue;
-        if (!v.label) { if (t <= 0.02 || !v.labelSpec) continue; v.label = makeLabel(v.labelSpec, font, live.ego?.has(id) ? labelScale() : 1); v.group.add(v.label); }
+        if (!v.label) { if (t <= 0.02 || !v.labelSpec) continue; v.label = makeLabel(v.labelSpec, font, (live.ego?.has(id) ? labelScale() : 1) * FS.node); v.group.add(v.label); }
         fading = true;
         v.labelOpacity += (t - v.labelOpacity) * 0.2;
         if (Math.abs(v.labelOpacity - t) < 0.004) v.labelOpacity = t;
@@ -1344,7 +1345,15 @@ export function mount(root, opts) {
     pop.innerHTML = `<h3>Display</h3>
       <div class="field"><span class="lab">Colour by</span><div class="seg wide"><button data-color="kind" class="${S.colorBy === "kind" ? "on" : ""}">Kind</button><button data-color="group" class="${S.colorBy === "group" ? "on" : ""}">Constellation</button></div></div>
       <div class="field"><span class="lab">Connections</span>${Object.entries(EDGE_GROUPS).map(([g, l]) => `<label class="chk"><input type="checkbox" data-edge="${g}" ${S.edgeGroups[g] ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>
-      <div class="field"><span class="lab">Motion</span><label class="chk"><input type="checkbox" id="gcSpinChk" ${S.autoRotate ? "checked" : ""}><span>Rotate slowly</span></label></div>`;
+      <div class="field"><span class="lab">Motion</span><label class="chk"><input type="checkbox" id="gcSpinChk" ${S.autoRotate ? "checked" : ""}><span>Rotate slowly</span></label></div>
+      <div class="field"><span class="lab">Text size</span>${[["topic", "Topic names"], ["bridge", "Connection labels"], ["node", "Idea names"]].map(([k, l]) => `<label class="fs"><span>${l}</span><input type="range" min="0.3" max="2.5" step="0.05" value="${FS[k]}" data-fs="${k}" aria-label="${l} size"><output>${Math.round(FS[k] * 100)}%</output></label>`).join("")}<button class="gcbtn ghost" data-fsreset="1">Reset sizes</button></div>`;
+  }
+  function applyFS(k) {
+    try { localStorage.setItem("sc_fs", JSON.stringify(FS)); } catch (e) {}
+    if (k === "topic") rebuildIslandTags();
+    else if (k === "bridge") { if (arcHot >= 0) { const i = arcHot; arcHot = -2; setArcHot(i); } }
+    else if (k === "node") { for (const v of visuals.values()) if (v.label) { v.group.remove(v.label); v.label.material.map?.dispose(); v.label.material.dispose(); v.label = null; } for (const [id, l] of marks.pointLabels) { l.parent?.remove(l); l.material.map?.dispose(); l.material.dispose(); } marks.pointLabels.clear(); apply(); }
+    wake(1200);
   }
   const presetList = () => {
     const ok = (id) => raw.has(id) && inScope(raw.get(id)) && !S.hidden.has(raw.get(id).k);
@@ -2576,6 +2585,8 @@ export function mount(root, opts) {
     const ed = e.target.closest("[data-edge]"); if (ed) { S.edgeGroups[ed.dataset.edge] = ed.checked; apply(); return; }
     if (e.target.id === "gcSpinChk") setSpin(e.target.checked);
   });
+  root.addEventListener("input", (e) => { const r = e.target.closest?.("[data-fs]"); if (!r) return; FS[r.dataset.fs] = +r.value; const o = r.parentElement.querySelector("output"); if (o) o.textContent = Math.round(r.value * 100) + "%"; applyFS(r.dataset.fs); });
+  root.addEventListener("click", (e) => { if (!e.target.closest("[data-fsreset]")) return; FS.topic = FS.bridge = FS.node = 1; ["topic", "bridge", "node"].forEach(applyFS); renderDisplay(); });
   const onKey = (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "") || e.target?.isContentEditable, mod = (e.ctrlKey || e.metaKey) && !e.altKey, kz = e.key.toLowerCase();
     if (mod && !typing && kz === "z" && !e.shiftKey) { if (UNDO.length) { e.preventDefault(); undo(); } }
