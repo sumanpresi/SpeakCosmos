@@ -120,7 +120,7 @@ async function providerError(name,r,model){
   return `${name} error ${r.status}.${hint}${m&&r.status!==404?' '+m:''}`.slice(0,175);
 }
 async function callOpenAI({key,model,system,user,signal,mode,max,base='https://api.openai.com/v1'}){
-  const official=/^https:\/\/api\.openai\.com\//.test(base),reasoning=/^(o\d|gpt-5)/i.test(model);
+  const official=/^https:\/\/api\.openai\.com\//.test(base),reasoning=/^(o\d|gpt-[5-9])/i.test(model);
   const n=(max||(mode==='ask'?600:320))*(reasoning?4:1);
   const body={model,temperature:0.35,response_format:{type:'json_object'},messages:[{role:'system',content:system},{role:'user',content:user}]};
   if(reasoning)delete body.temperature;
