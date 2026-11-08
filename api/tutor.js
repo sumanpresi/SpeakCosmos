@@ -43,6 +43,13 @@ function askPayload(body){
       user:`Question: ${q}\n\nNotes:\n${ctx}`
     };
   }
+  if(String(body?.topic||'')==='gita')return {
+    mode:'ask',
+    max:1600,
+    answer:q,
+    system:'You are a gentle guide to the Bhagavad Gita inside SpeakCosmos, for a learner whose first language is Bengali. Answer using ONLY the numbered notes, which are verses and ideas from the Gita graph; if they do not cover the question, say so briefly. Cite verses by their reference, like (BG 2.47). Do not invent verses or quotations. Use simple English, under 140 words.',
+    user:`Question: ${q}\n\nGraph notes:\n${ctx}`
+  };
   if(String(body?.topic||'')==='philosophy')return {
     mode:'ask',
     max:1600,

@@ -97,4 +97,11 @@ t("undo: restoreSnapshot reverts adds, deletes and edits, and the revert survive
   // re-linking after undo works again
   const again = normalize({ ...back, bridges: [{ a: "u:1", b: "u:3", rel: "SIMILAR", t: 200 }] }); assert.equal(mergeState(again, back).state.bridges.length, 1);
 });
+t("subtopics: parent link survives, bad links are repaired", () => {
+  const s = normalize({ topics: [{ id: "time", label: "Time" }, { id: "greek", label: "Greek", parent: "time" }, { id: "indian", label: "Indian", parent: "time" }, { id: "x", label: "X", parent: "greek" }, { id: "y", label: "Y", parent: "nope" }, { id: "z", label: "Z", parent: "z" }] });
+  const g = (id) => s.topics.find((x) => x.id === id).parent;
+  assert.equal(g("greek"), "time"); assert.equal(g("indian"), "time"); assert.equal(g("x"), "", "no grandchildren"); assert.equal(g("y"), ""); assert.equal(g("z"), "");
+  const m = mergeState(s, normalize({ topics: [{ id: "greek", label: "Greek", parent: "", updated: Date.now() + 5 }] })).state;
+  assert.equal(m.topics.find((x) => x.id === "greek").parent, "", "newer edit moves it out");
+});
 console.log(n + " tests passed");

@@ -12,6 +12,7 @@ import { parseNote } from "./wikilinks.js";
 import { suggest, contradictions, ideaDraft } from "./relations.js";
 import { SCHEMA, emptyState, normalize, buildGraph, textToNotes, mergeState, sameState, restoreSnapshot, newId, COLORS } from "./userdata.js";
 import { createStore } from "./store.js";
+import { loadReader, loadComm, verseHTML, commHTML, chapterList, verseList, setPref } from "./gita.js";
 
 const RING_R = 380;
 const KIND = {
@@ -28,13 +29,16 @@ const KIND = {
   school: { label: "Schools", shape: "ring", hint: "Schools, traditions and movements" },
   idea: { label: "Ideas", shape: "sphere", hint: "Concepts, texts and arguments" },
   era: { label: "Eras & events", shape: "ring", hint: "Periods and turning points in time" },
+  verse: { label: "Gita verses", shape: "sphere", hint: "The 701 verses of the Bhagavad Gita" },
+  state: { label: "States of mind", shape: "sphere", hint: "Mental states the Gita names, afflictive and healing" },
+  situation: { label: "Life situations", shape: "ring", hint: "Human situations the verses answer" },
   note: { label: "My writing", shape: "halo", hint: "Your own notes, stored only in this browser" },
   spark: { label: "New ideas", shape: "ring", hint: "Ideas you created by joining two topics" },
 };
-const ORDER = ["hub", "skill", "lesson", "scen", "fw", "word", "drill", "day", "thinker", "school", "idea", "era", "point", "note", "spark"];
+const ORDER = ["hub", "skill", "lesson", "scen", "fw", "word", "drill", "day", "thinker", "school", "idea", "era", "verse", "state", "situation", "point", "note", "spark"];
 const HEX = {
-  light: { hub: "#9a5a0c", skill: "#2a78d6", lesson: "#0e8fa3", scen: "#6250d6", fw: "#eb6834", word: "#1baf7a", day: "#c2417a", thinker: "#b3541e", school: "#7a3fb0", idea: "#1f7a5a", era: "#b08400", drill: "#4a453e", point: "#8f887d", note: "#1b1a17", spark: "#d4380d", core: "#1b1a17" },
-  dark: { hub: "#e3a44b", skill: "#3987e5", lesson: "#2bb3c8", scen: "#9085e9", fw: "#d95926", word: "#199e70", day: "#e0709f", thinker: "#f08a4b", school: "#b794f0", idea: "#4fd1a1", era: "#f0c34b", drill: "#ddd6ca", point: "#9c9488", note: "#f4f1eb", spark: "#ff7a45", core: "#f4f1eb" },
+  light: { verse: "#d08a2e", state: "#9c3d7a", situation: "#5b7f2b", hub: "#9a5a0c", skill: "#2a78d6", lesson: "#0e8fa3", scen: "#6250d6", fw: "#eb6834", word: "#1baf7a", day: "#c2417a", thinker: "#b3541e", school: "#7a3fb0", idea: "#1f7a5a", era: "#b08400", drill: "#4a453e", point: "#8f887d", note: "#1b1a17", spark: "#d4380d", core: "#1b1a17" },
+  dark: { verse: "#f0b45a", state: "#d07ab5", situation: "#9bc65b", hub: "#e3a44b", skill: "#3987e5", lesson: "#2bb3c8", scen: "#9085e9", fw: "#d95926", word: "#199e70", day: "#e0709f", thinker: "#f08a4b", school: "#b794f0", idea: "#4fd1a1", era: "#f0c34b", drill: "#ddd6ca", point: "#9c9488", note: "#f4f1eb", spark: "#ff7a45", core: "#f4f1eb" },
 };
 const REL = {
   BELONGS_TO: { verb: "belongs to", inverse: "includes", group: "structure", cost: 3 },
@@ -64,6 +68,27 @@ const REL = {
   SIMILAR: { verb: "is similar to", inverse: "is similar to", group: "curated", cost: 1.1 },
   CONTRADICTS: { verb: "contradicts", inverse: "contradicts", group: "curated", cost: 1.3 },
   SUPPORTS: { verb: "supports", inverse: "is supported by", group: "curated", cost: 1.1 },
+  MENTIONS_CONCEPT: { verb: "mentions", inverse: "is mentioned in", group: "curated", cost: 1.3 },
+  DEFINES_CONCEPT: { verb: "defines", inverse: "is defined in", group: "curated", cost: 1.1 },
+  MENTIONS_STATE: { verb: "names the state", inverse: "is named in", group: "curated", cost: 1.3 },
+  MENTIONS_CHARACTER: { verb: "mentions", inverse: "is mentioned in", group: "curated", cost: 1.4 },
+  ANSWERS_QUESTION_IN: { verb: "answers a question in", inverse: "is answered by", group: "curated", cost: 1.1 },
+  ADDRESSES_DILEMMA: { verb: "speaks to", inverse: "is answered in", group: "curated", cost: 1.2 },
+  HEALS: { verb: "heals", inverse: "is healed by", group: "curated", cost: 1.1 },
+  DEPICTS_STATE: { verb: "depicts", inverse: "is depicted in", group: "curated", cost: 1.2 },
+  CULTIVATES: { verb: "cultivates", inverse: "is cultivated by", group: "curated", cost: 1.2 },
+  RESOLVED_THROUGH: { verb: "is resolved through", inverse: "resolves", group: "curated", cost: 1.1 },
+  EXPOUNDS: { verb: "expounds", inverse: "is expounded in", group: "curated", cost: 1.1 },
+  ECHOES_VERSE: { verb: "echoes", inverse: "echoes", group: "curated", cost: 1.1 },
+  CULMINATES_IN: { verb: "culminates in", inverse: "is the goal of", group: "curated", cost: 1.1 },
+  EVOKES_STATE: { verb: "evokes", inverse: "is evoked by", group: "curated", cost: 1.2 },
+  ANTIDOTE_TO: { verb: "is the antidote to", inverse: "is cured by", group: "curated", cost: 1.1 },
+  CAUSES_STATE: { verb: "leads to", inverse: "follows from", group: "curated", cost: 1.1 },
+  NEXT_VERSE: { verb: "is followed by", inverse: "follows", group: "structure", cost: 1.5 },
+  NEXT_CHAPTER: { verb: "is followed by", inverse: "follows", group: "structure", cost: 1.5 },
+  SPOKE: { verb: "spoke", inverse: "was spoken by", group: "structure", cost: 3 },
+  NARRATED: { verb: "narrated", inverse: "was narrated by", group: "structure", cost: 3 },
+  ADDRESSES: { verb: "addresses", inverse: "is addressed by", group: "structure", cost: 3 },
   SHARES_TAG: { verb: "shares a tag with", inverse: "shares a tag with", group: "lexical", cost: 2 },
 };
 const GROUP_RANK = { curated: 0, lexical: 1, structure: 2 };
@@ -180,7 +205,7 @@ export function mount(root, opts) {
   const baseAll = allNodes.length;
 
   // ── topics: every node belongs to one topic. Built in: English + Philosophy. The person adds more. ─────────
-  const BUILTIN = [{ id: "eng", label: "English", builtin: true }, { id: "phil", label: "Philosophy", builtin: true }];
+  const BUILTIN = [{ id: "eng", label: "English", builtin: true }, { id: "phil", label: "Philosophy", builtin: true }, { id: "gita", label: "Bhagavad Gita", builtin: true }];
   const topicOf = (n) => n.t || (n.phil ? "phil" : "eng");
   const userStore = createStore();
   let U = emptyState(), userIds = new Set(), unresolved = new Map(), userReady = false, userRev = 0;
@@ -192,7 +217,10 @@ export function mount(root, opts) {
   const labelIndex = new Map();
   const scopeLabel = () => (!S.scope ? "All topics" : colOf(S.scope) ? colOf(S.scope).label + " · combined" : (topicInfo(S.scope)?.label ?? "Topic") + " map");
   const scopeCount = () => { let c = 0; for (const n of allNodes) if (inScope(n)) c++; return c; };
-  const topicsAll = () => [...BUILTIN, ...U.topics.map((t) => ({ id: "u:" + t.id, label: t.label, color: t.color, user: true, key: t.id, auto: t.auto }))];
+  const kidsOf = (key) => U.topics.filter((x) => x.parent === key);
+  const topicsAll = () => [...BUILTIN, ...U.topics.map((t) => { const p = t.parent && U.topics.find((x) => x.id === t.parent); return { id: "u:" + t.id, label: t.label, full: p ? p.label + " › " + t.label : t.label, color: t.color, user: true, key: t.id, auto: t.auto, parent: p ? "u:" + p.id : "" }; })];
+  // a topic with subtopics stands for itself plus all of them
+  const scopeTopics = (id) => { const k = id && id.startsWith("u:") ? id.slice(2) : null, kids = k ? kidsOf(k) : []; return kids.length ? [id, ...kids.map((c) => "u:" + c.id)] : null; };
   const topicInfo = (id) => topicsAll().find((t) => t.id === id);
   const colOf = (sc) => (sc && String(sc).startsWith("c:") ? U.cols.find((c) => "c:" + c.id === sc) : null);
   let SS = null; // topics shown in the current tab (null = everything)
@@ -214,9 +242,10 @@ export function mount(root, opts) {
   };
   function scopeChanged() {
     const c = colOf(S.scope);
-    SS = S.scope == null ? null : c ? new Set(c.topics) : new Set([S.scope]);
+    const st = !c ? scopeTopics(S.scope) : null;
+    SS = S.scope == null ? null : c ? new Set(c.topics) : st ? new Set(st) : new Set([S.scope]);
     islandOf.clear(); islandR.clear();
-    if (c) layoutIslands(c.topics);
+    if (c) layoutIslands(c.topics); else if (st) layoutIslands(st);
     if (circle) circle.visible = (!S.scope && !splitOn()) || S.scope === "eng" || S.scope === "phil";
   }
   const resolveTitle = (t) => labelIndex.get(norm(t)) ?? null;
@@ -630,7 +659,7 @@ export function mount(root, opts) {
     for (const [t, o] of islandOf) {
       if (!shown.has(t)) continue;
       const info = topicInfo(t), r = islandR.get(t) || 60;
-      const tag = new SpriteText(info?.label || t, Math.max(14, Math.min(64, (cur.extent || 440) / (mobile() ? 11 : 15))), S.dark ? "#f0e6d6" : "#2a2620"); tag.fontWeight = "600"; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
+      const tag = new SpriteText(info?.full || info?.label || t, Math.max(10, Math.min(48, (cur.extent || 440) / (mobile() ? 14 : 20))), S.dark ? "#f0e6d6" : "#2a2620"); tag.fontWeight = "600"; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
       tag.position.set(o[0], o[1] + r * 0.62 + 30, o[2]); islandTags.add(tag);
     }
     scene.add(islandTags); window.__scIslands = () => islandTags.children.map((c) => [c.text, c.position.toArray().map(Math.round), c.visible]);
@@ -741,7 +770,7 @@ export function mount(root, opts) {
   }
 
   // ── camera ────────────────────────────────────────────────────────────────────────────────────────────────
-  const home = () => { const w = stage.clientWidth || 800, h = stage.clientHeight || 600, a = w / h, k = Math.max(1, 1 / a) * Math.min(20, Math.max(0.3, (cur.extent || 440) / 440)), b = a < 0.9 ? { x: 0, y: 700, z: 640 } : { x: 0, y: 520, z: 820 }; return { x: b.x * k, y: b.y * k, z: b.z * k }; };
+  const home = () => { const w = stage.clientWidth || 800, h = stage.clientHeight || 600, a = w / h, k = Math.max(1, 1 / a) * Math.min(20, Math.max(islandOf.size > 1 ? 0.95 : 0.3, ((cur.extent || 440) + (islandOf.size > 1 ? 90 : 0)) / 440)), b = a < 0.9 ? { x: 0, y: 700, z: 640 } : { x: 0, y: 520, z: 820 }; return { x: b.x * k, y: b.y * k, z: b.z * k }; };
   const controlsInit = () => {
     const c = fg.controls();
     fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 0);
@@ -895,7 +924,11 @@ export function mount(root, opts) {
   function inspectorBody(n) {
     const out = [];
     const hub = hubOf(n);
-    if (n.k === "skill") {
+    if (n.t === "gita") {
+      const ch = n.g && n.k === "verse" ? raw.get(n.g) : null;
+      if (n.k === "verse") out.push(`<div class="chips"><span class="chip" style="--c:${ch?.c || "#e0a030"}">${esc(ch?.l || "Bhagavad Gita")}</span></div><h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p><div data-gvslot="${esc(n.id)}"><p class="sub">Loading the verse…</p></div>`);
+      else out.push(`<div class="chips">${n.sub ? `<span class="chip" style="--c:${hub?.c || n.c || "#e0a030"}">${esc(n.sub)}</span>` : ""}</div><h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p>${/^CH_(\d+)$/.test(n.id) ? `<div class="actions"><button class="gcbtn primary" data-gch="${n.id.slice(3)}">📖 Read this chapter</button></div>` : ""}`);
+    } else if (n.k === "skill") {
       out.push(`<div class="chips"><span class="chip" style="--c:${hub?.c}">${esc(hub?.icon || "")} ${esc(hub?.l)}</span><span class="chip">${esc(n.lvl)}</span></div>`);
       out.push(`<h2>${esc(n.l)}</h2><div class="bn-row"><span class="gcbn" lang="bn">${esc(n.bn)}</span>${say(n.bn, "bn-IN", "বাংলা")}</div><p class="gclead">${esc(n.d)}</p>`);
       out.push(`<div class="gcdemo"><span class="lab">Natural expression</span><p>${esc(n.ex)}</p></div>`);
@@ -954,6 +987,7 @@ export function mount(root, opts) {
     el.innerHTML = `<div class="ins-head"><span class="kind">${dot(k)}${esc(n.sub || KIND[k]?.label.replace(/s$/, "") || "")}</span><button class="x" id="gcClose" aria-label="Close">×</button></div><div class="ins-body">${inspectorBody(n)}</div>`;
     el.hidden = false; el.scrollTop = 0; root.classList.add("has-ins");
     el.querySelector("#gcClose").onclick = () => select(null);
+    fillGita(el); syncTabs();
   }
 
   // ── focus bar ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -1090,6 +1124,7 @@ export function mount(root, opts) {
   const PH_SUG = ["What are the Four Noble Truths?", "Why did the Buddha leave home?", "Why did Ambedkar rewrite the Buddha's life?", "Who were the shramana teachers?", "What is Avyakrita?", "Why does karma need a soul?", "Is Indian philosophy pessimistic?", "Why did Gandhi link the Bihar earthquake to untouchability?", "How can there be rebirth without a soul?", "What are the twelve links of dependent origination?", "Was the Buddha a pessimist?", "What did Nagasena's chariot show King Milinda?", "Who were the Charvakas and how do we know them?", "Why did Charvaka accept only perception?", "How did critics answer the Charvaka on inference?", "Why does Charvaka have only four elements?", "Why did Charvaka vanish?", "What is Nishkama Karma Yoga?", "Is it possible to act without wanting the result?", "What is Swadharma in the Gita?", "Does the Gita support the Varna system?"];
   const sugList = () => {
     if (S.scope === "phil") return PH_SUG;
+    if (S.scope === "gita") return ["How do I act without worrying about results?", "What does the Gita say about anger?", "I feel overwhelmed by expectations at work", "What is Swadharma?"];
     if (!S.scope || S.scope === "eng") return SUGGEST;
     const pool = allNodes.filter((n) => inScope(n) && n.user && (n.k === "note" || n.k === "spark")).sort((a, b) => deg(b.id) - deg(a.id)).slice(0, 6);
     const out = pool.slice(0, 3).map((n) => `What do my notes say about ${n.l}?`);
@@ -1164,6 +1199,7 @@ export function mount(root, opts) {
     const c = {}; for (const n of hits) c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1;
     const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0];
     if (top === "phil") return { topic: "philosophy" };
+    if (top === "gita") return { topic: "gita" };
     if (top && top.startsWith("u:")) return { topic: "notes", name: topicInfo(top)?.label || "" };
     return {};
   }
@@ -1437,6 +1473,8 @@ export function mount(root, opts) {
   const syncTabs = () => {
     root.querySelectorAll(".gc-nav [data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === S.lens));
     const cur2 = S.lens === "explore" ? S.scope || "" : null;
+    if (openParent() !== tabsOpenP) renderTopics();
+    const gb = $("#gcGita"); if (gb) gb.hidden = !(S.lens === "explore" && (S.scope === "gita" || (S.selected && raw.get(S.selected)?.t === "gita")));
     root.querySelectorAll(".tp[data-topic]").forEach((b) => { const on = b.dataset.topic === cur2; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
   };
   function ensureVisible(id) { const n = raw.get(id); if (n && !inScope(n) && S.scope) setScope(null, { fly: false }); }
@@ -1548,17 +1586,21 @@ export function mount(root, opts) {
     const cl = CL.state === "synced" ? " Also saved in your Google Drive." : CL.state === "syncing" ? " Syncing with Google Drive…" : CL.state === "error" ? " Google Drive sync failed: " + CL.err : cb.cloud ? " Not synced to Google Drive yet (open Library)." : "";
     el.parentElement.title = ({ idle: "Your topics and notes are kept in this browser", saving: "Saving…", saved: "Saved in this browser. Download a backup from Library now and then.", unsafe: "Could not save in this browser (private window or blocked storage). Download a backup from Library." }[saveState] || "") + cl;
   }
-  const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; return c; };
+  const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; for (const t of U.topics) if (t.parent) c["u:" + t.parent] = (c["u:" + t.parent] ?? 0) + (c["u:" + t.id] ?? 0); return c; };
+  let tabsOpenP = "";
+  const openParent = () => { const o = S.lens === "explore" ? S.scope || "" : null, a = o && o.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === o) : null; return a ? (a.parent || a.id) : ""; };
   function renderTopics() {
     const el = $("#gcTopics"), cnt = countsByTopic(), on = S.lens === "explore" ? S.scope || "" : null;
-    const tab = (id, label, extra = "", color = "") => `<button class="tp ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
-    el.innerHTML = `<div class="tp-scroll">${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${U.topics.map((t) => tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>`, t.color)).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}</div>
-      <div class="tp-right"><button class="tp tool ur" data-act="undo" id="gcUndo" aria-label="Undo" disabled>↶</button><button class="tp tool ur" data-act="redo" id="gcRedo" aria-label="Redo" disabled>↷</button><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Compare</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
+    const act = on && on.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === on) : null, openP = act ? (act.parent || act.id) : "";
+    tabsOpenP = openP;
+    const tab = (id, label, extra = "", color = "", cls = "") => `<button class="tp ${cls} ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
+    el.innerHTML = `<div class="tp-scroll">${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${tab("gita", "Bhagavad Gita", `<b>${cnt.gita ?? 0}</b>`)}${U.topics.filter((t) => !t.parent).map((t) => { const kids = kidsOf(t.id); return tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>${kids.length && openP !== t.id ? `<small class="kc">${kids.length} sub</small>` : ""}`, t.color) + (openP === t.id ? kids.map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(t.id)}" title="Add another subtopic, for example another culture">+ Subtopic</button>` : ""); }).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}</div>
+      <div class="tp-right"><button class="tp tool" data-act="gita-read" id="gcGita" hidden>📖 Read the Gita</button><button class="tp tool ur" data-act="undo" id="gcUndo" aria-label="Undo" disabled>↶</button><button class="tp tool ur" data-act="redo" id="gcRedo" aria-label="Redo" disabled>↷</button><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Compare</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
     chromeSave();
   }
   function renderEmpty() {
     const el = $("#gcEmpty"), t = S.scope && !colOf(S.scope) ? U.topics.find((x) => "u:" + x.id === S.scope) : null;
-    const n = t ? U.notes.filter((x) => x.topic === t.id).length : 1;
+    const n = t ? U.notes.filter((x) => x.topic === t.id || kidsOf(t.id).some((c) => c.id === x.topic)).length + kidsOf(t.id).length : 1;
     if (!t || n || S.lens !== "explore") { el.hidden = true; return; }
     el.hidden = false;
     el.innerHTML = `<div class="ecard"><b>${esc(t.label)} is empty</b><p>Add a note, or paste text or upload files to fill it. Link notes with [[Title]] and the map grows by itself.</p><div class="gcrow"><button class="gcbtn primary" data-act="new-note">+ Add a note</button><button class="gcbtn" data-act="import-into" data-id="${esc(t.id)}">Paste or upload text</button></div></div>`;
@@ -1577,14 +1619,16 @@ export function mount(root, opts) {
     if (S.highlight && [...S.highlight.nodes].some((x) => !raw.has(x))) S.highlight = null;
     if (id && raw.has(id)) { ensureVisible(id); select(id); } else { apply(); renderInspector(); }
     renderEmpty();
+    { const key = S.scope + ":" + islandOf.size; if (key !== islandKey) { islandKey = key; if (!S.selected && !S.highlight && S.lens === "explore") setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, reduceMotion ? 0 : 700), 120); } }
     if (S.tool === "conn") renderConn();
   }
+  let islandKey = "";
   const tomb = (key) => { U.gone[key] = Date.now(); };
   const tombB = (b) => tomb("b:" + b.a + "|" + b.b + "|" + b.rel);
   const addNotes = (topicKey, list) => { const t0 = Date.now(); let c = 0; for (const x of list) { if (c >= 2500) break; U.notes.push({ id: newId("n"), topic: topicKey, title: String(x.title || "Untitled").slice(0, 120), text: String(x.text || "").slice(0, 20000), created: t0, updated: t0 }); c++; } return c; };
   const ensureTopic = (label, auto) => {
     let t = U.topics.find((x) => norm(x.label) === norm(label));
-    if (!t) { let id = slug(label), k = 1; while (U.topics.some((x) => x.id === id) || id === "eng" || id === "phil") id = slug(label) + "-" + ++k; t = { id, label, color: auto ? "#d4380d" : COLORS[U.topics.length % COLORS.length], desc: auto ? "Ideas that join two topics" : "", created: Date.now(), updated: Date.now(), auto: !!auto }; U.topics.push(t); }
+    if (!t) { let id = slug(label), k = 1; while (U.topics.some((x) => x.id === id) || id === "eng" || id === "phil" || id === "gita") id = slug(label) + "-" + ++k; t = { id, label, color: auto ? "#d4380d" : COLORS[U.topics.length % COLORS.length], desc: auto ? "Ideas that join two topics" : "", created: Date.now(), updated: Date.now(), auto: !!auto }; U.topics.push(t); }
     return t;
   };
   async function readFiles(files) {
@@ -1598,15 +1642,16 @@ export function mount(root, opts) {
     return { notes: out, backups };
   }
   // ---- new topic
-  function newTopicModal() {
-    openModal(`${mHead("New topic", "A topic is its own 3D map. Add notes by hand, or paste text or upload files and they become connected notes.")}
-      <form id="mfTopic" class="mform">
-        <label>Name<input name="name" maxlength="40" required autofocus placeholder="e.g. Geology, Gita, Field notes" autocomplete="off"></label>
+  function newTopicModal(parent = "") {
+    const P = parent && U.topics.find((x) => x.id === parent && !x.parent);
+    openModal(`${mHead(P ? "New subtopic of " + esc(P.label) : "New topic", P ? "A subtopic is its own cluster inside " + esc(P.label) + ", for example one culture or one school of thought. Compare and contradiction tools work across subtopics." : "A topic is its own 3D map. Add notes by hand, or paste text or upload files and they become connected notes.")}
+      <form id="mfTopic" class="mform" data-parent="${esc(P?.id || "")}">
+        <label>Name<input name="name" maxlength="40" required autofocus placeholder="${P ? "e.g. Greek culture, Indian culture" : "e.g. Geology, Gita, Field notes"}" autocomplete="off"></label>
         <label>What is it about? <small>optional</small><input name="desc" maxlength="200" autocomplete="off"></label>
         <div class="swatches" role="radiogroup" aria-label="Colour">${COLORS.map((c, i) => `<label><input type="radio" name="color" value="${c}" ${i === U.topics.length % COLORS.length ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>
         <label>Paste text <small>optional, becomes small notes</small><textarea name="paste" rows="5" placeholder="Paste notes, a transcript or an article…"></textarea></label>
         <label>Or upload files <small>.txt .md, or a backup .json</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label>
-        <div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Create topic</button></div>
+        <div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">${P ? "Create subtopic" : "Create topic"}</button></div>
       </form>`, "wide");
   }
   function editTopicModal(id) {
@@ -1617,17 +1662,18 @@ export function mount(root, opts) {
         <label>Name<input name="name" maxlength="40" required value="${esc(t.label)}" autocomplete="off"></label>
         <label>About <small>optional</small><input name="desc" maxlength="300" value="${esc(t.desc || "")}" autocomplete="off"></label>
         <div class="swatches" role="radiogroup" aria-label="Colour">${COLORS.map((c) => `<label><input type="radio" name="color" value="${c}" ${c === t.color ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>
+        ${kidsOf(id).length ? `<p class="sub">This topic holds ${kidsOf(id).length} subtopic${kidsOf(id).length === 1 ? "" : "s"}: ${kidsOf(id).map((c) => esc(c.label)).join(", ")}.</p>` : `<label>Subtopic of <small>optional, e.g. one culture inside a bigger topic</small><select name="parent"><option value="">Nothing, it is a topic of its own</option>${U.topics.filter((x) => x.id !== id && !x.parent).map((x) => `<option value="${esc(x.id)}" ${x.id === t.parent ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>`}
         <div class="mf"><button type="button" class="gcbtn danger" data-act="del-topic" data-id="${esc(id)}">Delete topic</button><span class="aflex"></span><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Save</button></div>
       </form>
       ${others.length ? `<div class="lib-sec"><h4>Merge into another topic</h4><div class="gcrow"><select id="mergeTo">${others.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("")}</select><button class="gcbtn" data-act="merge-topic" data-id="${esc(id)}">Move all notes there</button></div></div>` : ""}
-      <div class="lib-sec"><button class="gcbtn" data-act="dup-topic" data-id="${esc(id)}">Duplicate this topic</button></div>`, "wide");
+      <div class="lib-sec"><div class="gcrow">${t.parent ? "" : `<button class="gcbtn" data-act="new-sub" data-parent="${esc(id)}">+ Add a subtopic</button>`}<button class="gcbtn" data-act="dup-topic" data-id="${esc(id)}">Duplicate this topic</button></div></div>`, "wide");
   }
   function mergeTopic(from, to) {
     const a = U.topics.find((x) => x.id === from), b = U.topics.find((x) => x.id === to); if (!a || !b || a === b) return;
     pushRestorePoint("Before merging topic " + a.label); checkpoint("merge topics");
     const now = Date.now(), ids = new Set(U.notes.filter((x) => x.topic === from).map((x) => x.id));
     U.notes.forEach((x) => { if (x.topic === from) { x.topic = to; x.updated = now; } });
-    tomb("t:" + from); U.topics = U.topics.filter((x) => x.id !== from); b.updated = now;
+    kidsOf(from).forEach((c) => { c.parent = b.parent || b.id === c.id ? "" : to; c.updated = now; }); if (b.parent === from) b.parent = ""; tomb("t:" + from); U.topics = U.topics.filter((x) => x.id !== from); b.updated = now;
     U.cols.forEach((c) => { c.topics = [...new Set(c.topics.map((x) => (x === "u:" + from ? "u:" + to : x)))]; c.t = now; }); U.cols = U.cols.filter((c) => c.topics.length > 1);
     if (S.scope === "u:" + from) S.scope = "u:" + to;
     closeModal(); afterDataChange({ scope: S.scope }); toast(`Moved ${ids.size} note${ids.size === 1 ? "" : "s"} into ${b.label}.`, 9000, true);
@@ -1643,13 +1689,13 @@ export function mount(root, opts) {
     const name = f.name.value.trim(); if (!name) return;
     const btn = f.querySelector("[type=submit]"); btn.disabled = true; btn.textContent = "Creating…";
     const color = f.querySelector("input[name=color]:checked")?.value || COLORS[0];
-    checkpoint("create topic"); const t = ensureTopic(name); t.color = color; t.auto = false; if (f.desc.value.trim()) t.desc = f.desc.value.trim().slice(0, 300);
+    checkpoint("create topic"); const t = ensureTopic(name); t.color = color; t.auto = false; if (f.dataset.parent && !t.parent && t.id !== f.dataset.parent && !kidsOf(t.id).length) t.parent = f.dataset.parent; if (f.desc.value.trim()) t.desc = f.desc.value.trim().slice(0, 300);
     let notes = textToNotes(name, f.paste.value), merged = 0;
     const r = await readFiles([...(f.files.files || [])]);
     notes.push(...r.notes);
     for (const b of r.backups) { const m = mergeState(U, b, { revive: true }); U = m.state; merged += m.addedN; }
     const c = addNotes(t.id, notes);
-    closeModal(); afterDataChange({ scope: "u:" + t.id });
+    closeModal(); afterDataChange({ scope: t.parent ? "u:" + t.parent : "u:" + t.id });
     toast(c || merged ? `Created ${t.label} with ${c + merged} note${c + merged === 1 ? "" : "s"}.` : `Created ${t.label}. Add your first note with + Note.`);
   }
   // ---- note editor
@@ -1667,7 +1713,7 @@ export function mount(root, opts) {
     openModal(`${mHead(editing ? "Edit note" : d.spark ? "New idea" : "New note", d.spark ? "Two topics meet here. Edit this first draft into your own idea." : "Write freely. Link to anything with [[Title]], tag with #word. The map updates when you save.")}
       <form id="mfNote" class="mform">
         <label>Title<input name="title" maxlength="120" required autofocus autocomplete="off" value="${esc(d.title || "")}"></label>
-        <label>Topic<select name="topic">${topic === "__ideas" ? '<option value="__ideas" selected>New ideas (new topic)</option>' : ""}${U.topics.map((t) => `<option value="${esc(t.id)}" ${t.id === topic ? "selected" : ""}>${esc(t.label)}</option>`).join("")}</select></label>
+        <label>Topic<select name="topic">${topic === "__ideas" ? '<option value="__ideas" selected>New ideas (new topic)</option>' : ""}${U.topics.filter((x) => !x.parent).flatMap((p) => [p, ...kidsOf(p.id)]).map((t) => `<option value="${esc(t.id)}" ${t.id === topic ? "selected" : ""}>${t.parent ? "↳ " : ""}${esc(t.label)}</option>`).join("")}</select></label>
         <label>Note <small>[[Title]] links · #tags</small><textarea name="text" rows="9" maxlength="20000" placeholder="Write here…">${esc(d.text || "")}</textarea></label>
         <div class="linkfind"><input id="mfFind" placeholder="Find something to link… (any topic)" autocomplete="off" aria-label="Find something to link"><div id="mfFound"></div></div>
         ${back.length ? `<div class="mnote"><b>Linked from</b> ${back.slice(0, 12).map((n) => `<button type="button" class="cb" data-go="${esc(n.id)}" data-m="close">${esc(clip(n.l, 30))}</button>`).join("")}</div>` : ""}
@@ -1715,13 +1761,66 @@ export function mount(root, opts) {
     if (n.k === "hub") return "";
     return `<div class="actions plat"><button class="gcbtn" data-act="relate" data-id="${esc(n.id)}">✦ Find related in other topics</button><button class="gcbtn ghost" data-act="note-about" data-id="${esc(n.id)}">+ Note about this</button></div>`;
   };
+  // ── Bhagavad Gita reader (from Gita Lessons / GitaViśva) ──────────────────────────────────────────────────
+  async function fillGita(el) {
+    const box = el.querySelector("[data-gvslot]"); if (!box) return;
+    try { const R = await loadReader(), v = R.byId.get(box.dataset.gvslot); if (v && box.isConnected) box.innerHTML = verseHTML(R, v, esc); }
+    catch (e) { box.innerHTML = `<p class="sub">${esc(String(e?.message || e))}</p>`; }
+  }
+  const GR = { view: "home", ch: 1, id: null };
+  async function gitaReader(spec = {}) {
+    Object.assign(GR, { view: "home", ch: GR.ch, id: null }, spec);
+    let R; try { R = await loadReader(); } catch (e) { return toast(String(e?.message || e)); }
+    const back = (to, label) => `<button class="gcbtn ghost sm" data-ghome="${to}">‹ ${label}</button>`;
+    let body = "", sub = "All 18 chapters, 701 verses, with translations, word meanings, 20 classical commentaries and recitation.";
+    if (GR.view === "verse" && R.byId.get(GR.id)) { const v = R.byId.get(GR.id); body = back("chapter", "Chapter " + v.c) + verseHTML(R, v, esc); sub = ""; GR.ch = v.c; }
+    else if (GR.view === "chapter") { const c = R.chapters.find((x) => x.number === GR.ch); body = back("home", "All chapters") + `<h3 class="gr-h">${GR.ch}. ${esc(c?.meaning || "")}</h3>` + verseList(R, GR.ch, esc); sub = ""; }
+    else {
+      const chains = (R.chains || []).map((c) => `<button class="gr-pill" data-gchain="${esc(c.id)}" title="${esc(c.summary)}">${esc(c.title)}</button>`).join("");
+      const threads = (R.threads || []).map((c) => `<button class="gr-pill" data-gthread="${esc(c.id)}" title="${esc(c.note)}">${esc(c.title)}</button>`).join("");
+      const dl = (R.dialogues || []).map((d) => `<button class="gr-q" data-gverse="${esc(d.anchor)}"><span>${esc(d.question)}</span><small>${esc(d.theme)}</small></button>`).join("");
+      body = `<div class="gr-chs">${chapterList(R, esc)}</div><h4 class="gr-s">Chains of ideas <small>(light up in the map)</small></h4><div class="gr-pills">${chains}</div><h4 class="gr-s">Threads through the Gita</h4><div class="gr-pills">${threads}</div><h4 class="gr-s">Questions and answers</h4><div class="gr-qs">${dl}</div>`;
+    }
+    openModal(`${mHead("Bhagavad Gita", sub)}<div class="gr">${body}</div>`, "wide");
+  }
+  function lightGita(ids) {
+    const nodes = ids.map((i) => raw.get(i)).filter(Boolean); if (nodes.length < 2) return toast("Those points are not in the map.");
+    closeModal(); if (S.scope !== "gita") setScope("gita", { fly: false }); lightUp(nodes);
+  }
+  function reflectOn(id) {
+    const n = raw.get(id); if (!n) return; closeModal();
+    let t = U.topics.find((x) => norm(x.label) === "gita reflections");
+    if (!t) { checkpoint("create topic"); t = ensureTopic("Gita reflections"); t.auto = false; afterDataChange(); }
+    noteModal({ title: "On " + n.l, text: `[[${n.l}]]\n\n`, topic: t.id });
+  }
+  root.addEventListener("click", async (e) => {
+    const t = e.target, q = (sel) => t.closest(sel);
+    let b;
+    if ((b = q("[data-gch]"))) { gitaReader({ view: "chapter", ch: +b.dataset.gch }); return; }
+    if ((b = q("[data-ghome]"))) { gitaReader({ view: b.dataset.ghome === "chapter" ? "chapter" : "home" }); return; }
+    if ((b = q("[data-gverse]"))) { const id = b.dataset.gverse; if (b.closest("#gcModal")) gitaReader({ view: "verse", id }); else { if (raw.has(id)) select(id); } return; }
+    if ((b = q("[data-gmap]"))) { const id = b.dataset.gmap; closeModal(); if (S.scope !== "gita") setScope("gita", { fly: false }); select(id); return; }
+    if ((b = q("[data-greflect]"))) { reflectOn(b.dataset.greflect); return; }
+    if ((b = q("[data-gchain]"))) { const R = await loadReader(), c = R.chains.find((x) => x.id === b.dataset.gchain); if (c) lightGita([...(c.verses || []), ...(c.steps || [])]); return; }
+    if ((b = q("[data-gthread]"))) { const R = await loadReader(), c = R.threads.find((x) => x.id === b.dataset.gthread); if (c) lightGita(c.verses.map((v) => "BG_" + v)); return; }
+    if ((b = q("[data-gv-loadcm]"))) {
+      const box = b.closest("[data-gv-cm]"), id = b.closest(".gv").dataset.gv; b.disabled = true; b.textContent = "Loading…";
+      try { const R = await loadReader(), list = await loadComm(id); box.innerHTML = commHTML(R, list, esc); } catch (err) { box.innerHTML = `<p class="sub">${esc(String(err?.message || err))}</p>`; }
+    }
+  });
+  root.addEventListener("change", async (e) => {
+    const s = e.target.closest("[data-gv-tr], [data-gv-cmsel]"); if (!s) return;
+    const g = s.closest(".gv"); if (!g) return;
+    if (s.matches("[data-gv-tr]")) { setPref("sc_gita_tr", s.value); const R = await loadReader(), v = R.byId.get(g.dataset.gv), [lang, aid] = s.value.split(":"); const tt = g.querySelector("[data-gv-tt]"); if (tt && v) tt.textContent = v.tl?.[lang]?.[aid] || ""; }
+    else { const list = await loadComm(g.dataset.gv), c = list[+s.value]; if (c) { setPref("sc_gita_cm", String(c[0])); const ct = g.querySelector(".gv-ct"); ct.textContent = c[4]; ct.lang = c[3]; } }
+  });
   // ---- library: topics, combined views, backup
   function libraryModal() {
     const cnt = countsByTopic(), kindTxt = { browser: "Saved in this browser (IndexedDB).", local: "Saved in this browser (local storage).", memory: "Not saved: this browser blocks storage (private window?). Download a backup before closing." }[userStore.kind] || "";
     openModal(`${mHead("Library", "Your topics, combined views and backup.")}
       <p class="lib-st" data-s="${userStore.kind}">${kindTxt}</p>
       ${cb.cloud ? `<div class="lib-sec cloud"><h4>Google Drive</h4><p class="lib-cl" data-s="${CL.state}">${{ off: "Not connected. Connect to keep everything in your own Google Drive and use it on every device.", syncing: "Syncing…", synced: "Synced " + new Date(CL.at).toLocaleTimeString() + ". Changes are uploaded automatically while this page is open.", error: "Sync failed: " + esc(CL.err) }[CL.state] || ""}</p><div class="gcrow wrap"><button class="gcbtn primary" data-act="cloud-sync" ${CL.busy ? "disabled" : ""}>${cloudOn() ? "Sync now" : "Connect Google Drive"}</button></div><p class="msub">Stored privately in this app\u2019s hidden folder in the Google account you choose at sign-in. Only this app can read it. Edits from two devices are merged, and a deletion is never undone by an older copy.</p></div>` : ""}
-      <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.map((t) => `<div class="lib-row"><i class="tdot" style="--tc:${t.color}"></i><b>${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="edit-topic" data-id="${esc(t.id)}">Edit</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
+      <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.filter((x) => !x.parent).flatMap((p) => [p, ...kidsOf(p.id)]).map((t) => `<div class="lib-row ${t.parent ? "sub" : ""}"><i class="tdot" style="--tc:${t.color}"></i><b>${t.parent ? "↳ " : ""}${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="edit-topic" data-id="${esc(t.id)}">Edit</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
       <div class="lib-sec"><h4>Combined views</h4>${U.cols.length ? U.cols.map((c) => `<div class="lib-row"><b>${esc(c.label)}</b><small>${c.topics.map((x) => esc(topicInfo(x)?.label ?? x)).join(" + ")}</small><span class="aflex"></span><button class="gcbtn ghost danger" data-act="del-col" data-id="${esc(c.id)}">Delete</button></div>`).join("") : '<p class="msub">A combined view shows several topics in one tab, side by side, so you can look for relations.</p>'}<button class="gcbtn" data-act="combine">+ Combine topics</button></div>
       <div class="lib-sec"><h4>Restore points</h4><p class="sub">Automatic earlier copies, made at the start of a session and before risky changes. Ctrl+Z also undoes your last change.</p>${RP.length ? RP.map((p, i) => `<div class="lib-row"><b>${esc(p.label)}</b><small>${new Date(p.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${p.state.notes?.length ?? 0} notes · ${p.state.bridges?.length ?? 0} links</small><span class="aflex"></span><button class="gcbtn ghost" data-act="rp-restore" data-i="${i}">Go back to this</button></div>`).join("") : '<p class="sub">None yet.</p>'}</div>
       <div class="lib-sec"><h4>Backup</h4><div class="gcrow"><button class="gcbtn primary" data-act="export">Download backup</button><label class="gcbtn filebtn">Restore or merge a backup<input type="file" id="libRestore" accept=".json,application/json" hidden></label></div><p class="msub">A backup is one small file with all your topics, notes and connections. Restoring never overwrites what you already have.</p></div>`, "wide");
@@ -1745,7 +1844,7 @@ export function mount(root, opts) {
     contradict: { word: "contradictions", rel: "CONTRADICTS", accept: "Mark as contradiction", no: "Not a contradiction", intro: "Finds ideas that cover the same ground but lean opposite ways. Offline results are candidates; ask the AI to judge them." },
   };
   const aiOk = () => !!((cb.aiState && cb.aiState()) || {}).ok;
-  const topicSel = () => { const all = new Set(topicsAll().map((t) => t.id)); return [...CN.topics].filter((t) => all.has(t)); };
+  const topicSel = () => { const all = new Set(topicsAll().map((t) => t.id)), out = []; for (const t of CN.topics) { if (!all.has(t)) continue; const k = scopeTopics(t); for (const x of k ? (U.notes.some((n) => "u:" + n.topic === t) ? k : k.slice(1)) : [t]) if (!out.includes(x)) out.push(x); } return out; };
   function connItems() {
     return allNodes.filter((n) => n.k !== "point" && n.k !== "hub" && n.k !== "core" && n.k !== "day").map((n) => ({ id: n.id, topic: topicOf(n), label: n.l, text: tclip([n.text || n.d, n.ex, n.sample, (n.tips || []).join(" ")].filter(Boolean).join(" "), 700), tags: n.tags }));
   }
@@ -1761,7 +1860,7 @@ export function mount(root, opts) {
     const skip = new Set(U.dismissed.filter((k) => (mode === "contradict") === k.startsWith("c:")).map((k) => k.replace(/^c:/, "")));
     return { items: connItems(), links, skip };
   }
-  const BI = new Set(["eng", "phil"]);
+  const BI = new Set(["eng", "phil", "gita"]);
   function runConn() {
     CN.busy = true; CN.ai = ""; renderConn();
     setTimeout(() => {
@@ -1831,7 +1930,7 @@ export function mount(root, opts) {
     } else {
       const hint = sel.length === 0 ? "Comparing all topics with each other." : sel.length === 1 ? `Comparing “${esc(topicInfo(sel[0])?.label)}” with every other topic.` : `Comparing ${sel.length} topics with each other.`;
       const cards = CN.busy ? '<p class="sub">Looking…</p>' : CN.res ? (CN.res.length ? CN.res.map((r, i) => `<div class="cn-card ${r.ai?.verdict === "unrelated" ? "dim" : ""}" data-i="${i}"><div class="cn-pair">${chip(r.a)}<span class="cn-x">${mode === "contradict" ? "⇄" : "↔"}</span>${chip(r.b)}</div>${r.ai ? `<p class="cn-ai" data-v="${r.ai.verdict}"><b>${VL[r.ai.verdict] ?? "AI"}</b> ${esc(r.ai.why)}</p>` : ""}<p class="cn-why">${esc(why(r.why))}</p><div class="gcrow"><button class="gcbtn primary" data-cn="accept">${M.accept}</button><button class="gcbtn" data-cn="spark">✦ Spark an idea</button><button class="gcbtn ghost" data-cn="no">${M.no}</button></div></div>`).join("") : `<p class="sub">Nothing found for this choice. ${mode === "contradict" ? "Offline matching needs wording like “not”, “rejects” or opposite terms; the AI search can read meaning." : "Add more notes, share #tags, or try the AI search."}</p>`) : "";
-      body = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnall>All topics</button>' : ""}</div><p class="sub tight">${hint}</p>
+      body = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.full || t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnall>All topics</button>' : ""}</div><p class="sub tight">${hint}</p>
         <div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${CN.res ? "Search again" : "Find " + M.word}</button><button class="gcbtn" id="cnAI" ${CN.aiBusy ? "disabled" : ""} title="${aiOk() ? "The AI reads the notes and proposes pairs" : "Connect an AI in Settings to use this"}">${CN.aiBusy ? "AI is reading…" : "✦ Ask AI to find"}</button>${CN.only ? '<button class="gcbtn ghost" id="cnAll">All nodes</button>' : ""}</div>
         ${CN.res?.length && !CN.aiBusy ? '<button class="gcbtn" id="cnSaveRes" title="Creates a new topic from these results">💾 Save as new cluster</button>' : ""}${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
         <div class="cn-list" aria-live="polite">${cards}</div>`;
@@ -1869,7 +1968,7 @@ export function mount(root, opts) {
   }
   function compareBody() {
     const tops = topicsAll(), sel = topicSel(), c = CN.cmp;
-    const chips = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnclear="1">Clear</button>' : ""}</div>`;
+    const chips = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.full || t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnclear="1">Clear</button>' : ""}</div>`;
     const hint = sel.length === 0 ? "No topic ticked: comparing all topics with each other." : sel.length === 1 ? `Comparing “${esc(topicInfo(sel[0])?.label)}” with every other topic.` : `Comparing ${sel.length} topics with each other.`;
     let out = `${chips}<p class="sub">${hint}</p><div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${c ? "Compare again" : "Compare"}</button></div>`;
     if (CN.cmpBusy) return out + '<p class="sub">Comparing…</p>';
@@ -1885,7 +1984,10 @@ export function mount(root, opts) {
   // a finding becomes a topic of its own: a summary, one idea per pair, and the links drawn between the originals
   function makeFindings(title, summary, pairs) {
     checkpoint("save findings as a cluster");
-    const t = ensureTopic(title.slice(0, 40)); t.auto = false; t.color = COLORS[U.topics.length % COLORS.length]; t.desc = "Saved from Compare, " + new Date().toLocaleDateString();
+    const t = ensureTopic(title.slice(0, 40)); t.auto = false; t.color = COLORS[U.topics.length % COLORS.length];
+    { const ks = new Set(); for (const r of pairs) for (const id of [r.a, r.b]) ks.add(topicOf(raw.get(id)));
+      const us = [...ks].map((x) => U.topics.find((z) => "u:" + z.id === x)).filter(Boolean);
+      if (us.length && us.length === ks.size) { const par = new Set(us.map((z) => z.parent || (kidsOf(z.id).length ? z.id : ""))); const P = [...par][0]; if (par.size === 1 && P && !t.parent && !kidsOf(t.id).length && t.id !== P) t.parent = P; } } t.desc = "Saved from Compare, " + new Date().toLocaleDateString();
     const now = Date.now(); let n = 0;
     if (summary) U.notes.push({ id: newId("n"), topic: t.id, title: "Summary", text: summary, created: now, updated: now });
     for (const r of pairs.slice(0, 40)) {
@@ -1894,7 +1996,7 @@ export function mount(root, opts) {
       U.notes.push({ id: newId("n"), topic: t.id, title: dr.title, text: dr.text, created: now, updated: now, spark: true, from: [r.a, r.b] }); n++;
       addBridge(r.a, r.b, r.kind, r.ai?.why || "");
     }
-    afterDataChange({ scope: "u:" + t.id }); S.tool && showPop(S.tool);
+    afterDataChange({ scope: t.parent ? "u:" + t.parent : "u:" + t.id }); S.tool && showPop(S.tool);
     toast(`Saved as the topic “${t.label}” with ${n} linked idea${n === 1 ? "" : "s"}.`, 12000, true);
   }
   function saveCompare() {
@@ -1951,8 +2053,8 @@ export function mount(root, opts) {
   const strip = $("#gcTopics");
   strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); renderEmpty(); } });
   const actions = {
-    "new-topic": () => newTopicModal(), "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
-    "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope), c = colOf(S.scope); CN.topics = new Set(k ? [S.scope] : c ? c.topics : []); CN.only = null; CN.res = null; CN.ai = ""; CN.cmp = null; CN.mode = "compare"; showPop("conn"); if (CN.topics.size >= 2) runCompare(); },
+    "new-topic": () => newTopicModal(), "new-sub": (b) => { closeModal(); newTopicModal(b.dataset.parent); }, "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
+    "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope), c = colOf(S.scope), kt = k && U.topics.find((x) => x.id === k), sib = kt?.parent ? kidsOf(kt.parent).map((x) => "u:" + x.id) : null; CN.topics = new Set(sib && sib.length > 1 ? sib : k ? [S.scope] : c ? c.topics : []); CN.only = null; CN.res = null; CN.ai = ""; CN.cmp = null; CN.mode = "compare"; showPop("conn"); if (topicSel().length >= 2) runCompare(); },
     "new-note": (b) => { const t = b?.dataset.topic; noteModal(t ? { topic: t } : {}); },
     "note-about": (b) => { const n = raw.get(b.dataset.id); if (!n) return; noteModal({ title: "", text: `About [[${n.l}]]\n\n` }); },
     "create-note": (b) => { closeModal(); noteModal({ title: b.dataset.title, topic: b.dataset.topic }); },
@@ -1960,9 +2062,9 @@ export function mount(root, opts) {
     "relate": (b) => { CN.only = b.dataset.id; CN.topics = new Set(); CN.res = null; CN.ai = ""; if (CN.mode === "link") CN.mode = "similar"; if (S.tool !== "conn") showPop("conn"); else runConn(); },
     "import-into": (b) => { closeModal(); const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; openModal(`${mHead("Add text to " + esc(t.label), "Paste text or upload files. They become small notes in this topic.")}<form id="mfImport" class="mform" data-topic="${esc(t.id)}"><label>Paste text<textarea name="paste" rows="7" autofocus></textarea></label><label>Or upload files <small>.txt .md</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label><div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Add to topic</button></div></form>`, "wide"); },
     "merge-topic": (b) => mergeTopic(b.dataset.id, $("#mergeTo")?.value), "dup-topic": (b) => dupTopic(b.dataset.id), "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { checkpoint("rename topic"); t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
-    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. You can undo it straight after, or from Library › Restore points.`)) return; pushRestorePoint("Before deleting topic " + t.label); checkpoint("delete topic"); const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. You can undo it straight after, or from Library › Restore points.`)) return; pushRestorePoint("Before deleting topic " + t.label); checkpoint("delete topic"); const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); kidsOf(t.id).forEach((c) => { c.parent = ""; c.updated = Date.now(); }); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
     "del-col": (b) => { checkpoint("remove combined view"); tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
-    "cloud-sync": () => cloudSync(true), "undo": () => undo(), "redo": () => redo(), "edit-topic": (b) => editTopicModal(b.dataset.id), "toggle-split": () => { S.split = !S.split; islandOf.clear(); scopeChanged(); apply({ frame: true }); setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 700), 150); },
+    "gita-read": () => gitaReader({ view: "home" }), "cloud-sync": () => cloudSync(true), "undo": () => undo(), "redo": () => redo(), "edit-topic": (b) => editTopicModal(b.dataset.id), "toggle-split": () => { S.split = !S.split; islandOf.clear(); scopeChanged(); apply({ frame: true }); setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 700), 150); },
     "export": () => { exportBackup(); toast("Backup downloaded."); },
   };
   root.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (!b || !root.contains(b)) return; const f = actions[b.dataset.act]; if (f) { e.preventDefault(); f(b); } });
@@ -1988,7 +2090,7 @@ export function mount(root, opts) {
     e.preventDefault();
     const f = e.target;
     if (f.id === "mfTopic") return submitTopic(f);
-    if (f.id === "mfEditTopic") { const t = U.topics.find((x) => x.id === f.dataset.id); const nm = f.name.value.trim(); if (t && nm) { checkpoint("edit topic"); t.label = nm.slice(0, 40); t.desc = f.desc.value.trim().slice(0, 300); t.color = f.querySelector("input[name=color]:checked")?.value || t.color; t.updated = Date.now(); closeModal(); afterDataChange({ scope: S.scope }); toast("Saved.", 5000, true); } return; }
+    if (f.id === "mfEditTopic") { const t = U.topics.find((x) => x.id === f.dataset.id); const nm = f.name.value.trim(); if (t && nm) { checkpoint("edit topic"); t.label = nm.slice(0, 40); t.desc = f.desc.value.trim().slice(0, 300); t.color = f.querySelector("input[name=color]:checked")?.value || t.color; if (f.parent) t.parent = f.parent.value; t.updated = Date.now(); closeModal(); afterDataChange({ scope: S.scope }); toast("Saved.", 5000, true); } return; }
     if (f.id === "mfNote") return saveNote(f);
     if (f.id === "mfCombine") {
       const ts = [...f.querySelectorAll("input[name=t]:checked")].map((x) => x.value);
@@ -2091,7 +2193,7 @@ export function mount(root, opts) {
   apply();
   startLoop();
   if (new URLSearchParams(location.search).get("lens") === "course") setLens("course");
-  else if (["phil", "eng"].includes(new URLSearchParams(location.search).get("scope"))) { setScope(new URLSearchParams(location.search).get("scope")); if (startId && raw.has(startId)) setTimeout(() => select(startId), 600); }
+  else if (["phil", "eng", "gita"].includes(new URLSearchParams(location.search).get("scope"))) { setScope(new URLSearchParams(location.search).get("scope")); if (startId && raw.has(startId)) setTimeout(() => select(startId), 600); }
   else if (new URLSearchParams(location.search).get("lens") === "lineage") { if (startId && raw.has(startId)) L.focus = startId; setLens("lineage"); }
   else if (startId && raw.has(startId)) setTimeout(() => select(startId), 200);
 
