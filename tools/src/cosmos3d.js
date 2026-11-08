@@ -714,6 +714,16 @@ export function mount(root, opts) {
         else if (act === "open-a" || act === "open-b") { const id = act === "open-a" ? A.id : B.id; closeBridge(); select(id); }
         else if (act === "focus-pair") { const ids = [A.id, B.id]; closeBridge(); setFocus({ label: clip(A.l, 22) + " ↔ " + clip(B.l, 22), nodes: new Set(ids), nbrs: true, idea: A.id }); }
         else if (act === "lineage") { const id = A.id; closeBridge(); S.selected = id; L.chain = "cross"; L.focus = id; L.back = []; L.more.clear(); L.off = {}; L.view = { x: 0, y: 0, k: 1 }; setLens("lineage"); syncTabs(); renderLineage(); }
+        else if (act === "explain" || act === "explain-bn") {
+          const ans = bridgeEl.querySelector(".bd-ans"), st = (cb.aiState && cb.aiState()) || { ok: false };
+          if (!st.ok || !cb.ask) { ans.innerHTML = `<p class="sub">Connect AI in Settings to get an explanation.</p>`; return; }
+          const bnq = act === "explain-bn", rl = REL[cur2.l.rel]?.verb || "relates to";
+          ans.innerHTML = `<p class="aithink">Thinking…</p>`;
+          cb.ask(`Explain how “${A.l}” and “${B.l}” are connected (the link says: ${A.l} ${rl} ${B.l}). Say what they share and where they differ, in 4 short sentences.${bnq ? " Put the complete Bengali explanation in the bn field." : ""}`,
+            [A, B].map((x) => ({ l: x.l, k: topicInfo(topicOf(x))?.label || "", d: tclip(plainTxt(x.text || x.d || ""), 540) })), { topic: "notes", name: "these ideas" })
+            .then((r) => { const t = bnq && r.bn ? r.bn : r.answer; ans.innerHTML = String(t || "").split(/\n+/).map((q) => `<p ${bnq ? 'lang="bn"' : ""}>${esc(q)}</p>`).join("") + `<span class="aitag">AI · from the two ideas</span>`; })
+            .catch((e2) => { ans.innerHTML = `<p class="sub">The AI did not respond (${esc(String(e2?.message || "").slice(0, 80))}). Try again.</p>`; });
+        }
         else if (act === "unlink") { const e = cur2.l, hit = U.bridges.find((x) => (x.a === e.s && x.b === e.t && x.rel === e.rel) || (x.a === e.t && x.b === e.s && x.rel === e.rel)); closeBridge(); if (hit) { checkpoint("remove connection"); tombB(hit); U.bridges = U.bridges.filter((x) => x !== hit); afterDataChange(); toast("Connection removed.", 7000, true); } else toast("This link comes from the notes' own text; edit the note to change it."); }
       });
     }
@@ -721,7 +731,7 @@ export function mount(root, opts) {
     const sa = new Set(tokens(A.l + " " + bdesc(A))), shared = [...new Set(tokens(B.l + " " + bdesc(B)).filter((w) => sa.has(w) && w.length > 3))].slice(0, 7);
     const own = U.bridges.find((x) => (x.a === a.l.s && x.b === a.l.t && x.rel === a.l.rel) || (x.a === a.l.t && x.b === a.l.s && x.rel === a.l.rel));
     const side = (n, t, key) => `<section class="bd-side" style="--c:${topicCol(t)}"><div class="bd-top"><i></i><span>${esc(topicInfo(t)?.full || topicInfo(t)?.label || t)}</span><em>${esc(KIND[n.k]?.label.replace(/s$/, "") || "")}</em></div><h3>${esc(n.l)}</h3><p>${esc(clip(bdesc(n), 560) || "No description yet.")}</p><button class="gcbtn" data-bd="open-${key}">Open full details</button></section>`;
-    bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}${own?.note ? `<div class="bd-note">“${esc(clip(own.note, 160))}”</div>` : ""}</div>${side(B, tb, "b")}</div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
+    bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}${own?.note ? `<div class="bd-note">“${esc(clip(own.note, 160))}”</div>` : ""}</div>${side(B, tb, "b")}</div><div class="bd-ai"><button class="gcbtn" data-bd="explain">✨ Explain this connection</button><button class="gcbtn" data-bd="explain-bn" lang="bn">বাংলায়</button><div class="bd-ans" aria-live="polite"></div></div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
     bridgeEl.hidden = false; root.classList.add("has-bridge"); wake(1500);
   }
   function setArcHot(i, ev) {
@@ -1030,12 +1040,13 @@ export function mount(root, opts) {
   const AI_TASKS = {
     simple: ["Explain simply", (n) => `Explain “${n.l}” in simple English in 3 short sentences, as for a curious beginner.`],
     bn: ["বাংলায়", (n) => `Explain “${n.l}” clearly in 3 short sentences. Put the complete Bengali explanation in the bn field.`],
-    why: ["Why it matters", (n) => `Why does “${n.l}” matter in the story of Indian philosophy? Say what led to it and what it led to.`],
+    more: ["Tell me more", (n) => `Tell me more about “${n.l}”: the key details, one clear example, and one common misunderstanding. Use short paragraphs.`],
+    why: ["Why it matters", (n) => `Why does “${n.l}” matter? Say what it connects to, what led to it and what follows from it.`],
     quiz: ["Quiz me", (n) => `Write 3 short multiple-choice questions on “${n.l}” (options A to C), then the correct answers on a last line.`],
     compare: ["Compare", (n, m) => `Compare “${n.l}” with “${m?.l}”: one similarity and one difference, in 3 short sentences.`],
   };
   function ctxFor(n) {
-    const out = [{ id: n.id, l: n.l, k: KIND[n.k]?.label || n.k, d: n.d }];
+    const out = [{ id: n.id, l: n.l, k: KIND[n.k]?.label || n.k, d: n.user ? tclip(plainTxt(n.text || n.d || ""), 540) : n.d }];
     for (const a of (adj.get(n.id) ?? [])) {
       const m = raw.get(a.other); if (!m || m.k === "hub" || m.k === "core") continue;
       out.push({ id: m.id, l: m.l, k: KIND[m.k]?.label || m.k, d: `${a.out ? n.l + " " + REL[a.e.rel].verb + " this" : "This " + REL[a.e.rel].verb + " " + n.l}. ${m.d}` });
@@ -1137,7 +1148,7 @@ export function mount(root, opts) {
       try {
         const ctx = ctxFor(n); if (m) ctx.push({ id: m.id, l: m.l, k: KIND[m.k]?.label || m.k, d: m.d });
         const notes = ctx.map((c) => raw.get(c.id));
-        const r = await cb.ask(q, ctx, { topic: "philosophy" });
+        const r = await cb.ask(q, ctx, { topic: n.t === "gita" ? "gita" : n.user ? "notes" : n.phil ? "philosophy" : "", name: n.user ? topicInfo(topicOf(n))?.label : "" });
         if (r && r.answer) {
           const body = task === "bn" && r.bn ? "" : String(r.answer).split(/\n+/).map((p) => `<p>${cite(p, notes)}</p>`).join("");
           html = `${body}${r.bn ? `<p class="aibn" lang="bn">${cite(r.bn, notes)}</p>` : ""}<span class="aitag">AI · from the graph notes</span>`;
@@ -1202,6 +1213,7 @@ export function mount(root, opts) {
       out.push(`<h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p>`);
     }
     out.push(platformActions(n));
+    if (n.k !== "core" && !out.join("").includes("data-ai-node") && !(n.user && SRC_MAP[n.t] && srcRange(n))) out.push(aiBlock(n));
     // connections, grouped by relation
     const groups = new Map();
     for (const a of adj.get(n.id) ?? []) { if (raw.get(a.other)?.k === "core") continue; const key = `${a.e.rel}|${a.out ? 1 : 0}`; groups.set(key, [...(groups.get(key) ?? []), a.other]); }
@@ -2472,6 +2484,34 @@ export function mount(root, opts) {
     else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (bridgeEl && !bridgeEl.hidden) closeBridge(); else if (S.highlight) clearPath(); else if (S.selected) select(null); else if (S.focus) clearFocus(); }
   };
   document.addEventListener("keydown", onKey);
+  // ── back button / swipe: closes the top-most layer (dialog, panel, selection, focus, lens, topic) before leaving the app ──
+  const helpEl = $("#gcHelpM");
+  const layerCount = () => (!modal.hidden ? 1 : 0) + (helpEl && !helpEl.hidden ? 1 : 0) + (askSt.open ? 1 : 0) + (S.tool ? 1 : 0) + (bridgeEl && !bridgeEl.hidden ? 1 : 0) + (S.highlight ? 1 : 0) + (S.selected ? 1 : 0) + (S.focus ? 1 : 0) + (S.lens === "lineage" ? L.back.length : 0) + (S.lens !== "explore" ? 1 : 0) + (S.scope ? 1 : 0);
+  function backStep() {
+    if (!modal.hidden) closeModal();
+    else if (helpEl && !helpEl.hidden) showHelp(false);
+    else if (askSt.open) toggleAsk(false);
+    else if (S.tool) showPop(S.tool);
+    else if (bridgeEl && !bridgeEl.hidden) closeBridge();
+    else if (S.highlight) clearPath();
+    else if (S.selected) select(null);
+    else if (S.focus) clearFocus();
+    else if (S.lens === "lineage" && L.back.length) { const id = L.back.pop(); if (id) linFocus(id, { push: false }); }
+    else if (S.lens !== "explore") setLens("explore");
+    else if (S.scope) setScope(null);
+  }
+  let hDepth = 0, hSkip = false, hTimer = 0;
+  const histSync = () => {
+    if (destroyed || hSkip) return;
+    const n = layerCount();
+    try {
+      if (n > hDepth) { for (let i = hDepth; i < n; i++) history.pushState({ sc: i + 1 }, "", location.href); hDepth = n; }
+      else if (n < hDepth) { const k = hDepth - n; hDepth = n; hSkip = true; clearTimeout(hTimer); hTimer = setTimeout(() => { hSkip = false; }, 500); history.go(-k); }
+    } catch (e) {}
+  };
+  const onPop = () => { if (hSkip) { hSkip = false; clearTimeout(hTimer); return; } if (hDepth > 0) { hDepth--; backStep(); } };
+  window.addEventListener("popstate", onPop);
+  const histIv = setInterval(histSync, 180);
   const ro = new ResizeObserver(() => { const w = stage.clientWidth, h = stage.clientHeight; if (w > 50 && h > 50) { fg.width(w).height(h); applyViewOffset(); wake(500); } });
   ro.observe(stage);
   const onVis = () => { if (document.hidden) { fg.pauseAnimation(); sleeping = true; if (saveState === "saving") userStore.flush(U); if (CL.dirty && cloudOn()) cloudSync(false); } else { wake(1200); cloudPoll(Date.now() - CL.at > 15000); } };
@@ -2513,7 +2553,7 @@ export function mount(root, opts) {
     refresh() { renderInspector(); chrome(); if (askSt.open) renderAsk(); },
     destroy() {
       destroyed = true; cancelAnimationFrame(raf); clearTimeout(hoverTimer);
-      document.removeEventListener("keydown", onKey); linRo.disconnect(); window.removeEventListener("beforeinstallprompt", onBip); window.removeEventListener("appinstalled", onBip); document.removeEventListener("visibilitychange", onVis); clearInterval(CL.poll); clearTimeout(CL.timer); window.removeEventListener("online", onOnline); document.removeEventListener("pointerdown", onGesture, true); window.removeEventListener("pagehide", onHide); if (saveState === "saving") userStore.flush(U); clearTimeout(toastT); ro.disconnect();
+      document.removeEventListener("keydown", onKey); window.removeEventListener("popstate", onPop); clearInterval(histIv); linRo.disconnect(); window.removeEventListener("beforeinstallprompt", onBip); window.removeEventListener("appinstalled", onBip); document.removeEventListener("visibilitychange", onVis); clearInterval(CL.poll); clearTimeout(CL.timer); window.removeEventListener("online", onOnline); document.removeEventListener("pointerdown", onGesture, true); window.removeEventListener("pagehide", onHide); if (saveState === "saving") userStore.flush(U); clearTimeout(toastT); ro.disconnect();
       try { fg.pauseAnimation(); fg._destructor?.(); fg.renderer().dispose(); fg.renderer().forceContextLoss?.(); } catch (e) {}
       root.innerHTML = "";
     },

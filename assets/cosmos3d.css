@@ -491,3 +491,5 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .srcnav{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.srcnote{font-size:11px;color:var(--text3);margin:8px 0}
 .srcai{margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}.srcform{display:flex;gap:6px;margin-top:8px}.srcform input{flex:1;min-width:0}
 .srcans{margin-top:8px;font-size:13.5px;line-height:1.6}.srcans p{margin:6px 0}
+
+.bd-ai{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}.bd-ans{flex:1 1 100%;font-size:13px;line-height:1.6}.bd-ans p{margin:4px 0}
