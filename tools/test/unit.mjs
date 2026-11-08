@@ -13,11 +13,11 @@ t("normalize repairs bad input", () => {
   assert.equal(new Set(s.topics.map((x) => x.id)).size, s.topics.length); assert.equal(new Set(s.notes.map((x) => x.id)).size, 3); assert.ok(s.topics.find((x) => x.id === "inbox")); assert.equal(s.bridges.length, 1);
   assert.deepEqual(normalize(null), emptyState()); assert.deepEqual(normalize("garbage").notes, []);
 });
-const mk = () => normalize({ topics: [{ id: "geo", label: "Geology" }, { id: "gita", label: "Gita" }], notes: [
+const mk = () => normalize({ topics: [{ id: "geo", label: "Geology" }, { id: "vedic", label: "Vedic" }], notes: [
   { id: "1", topic: "geo", title: "Subduction", text: "Oceanic plate sinks beneath another plate; recycling of crust over deep time. #cycle" },
   { id: "2", topic: "geo", title: "Rock cycle", text: "Rocks are recycled: [[Subduction]] melts crust. #cycle" },
-  { id: "3", topic: "gita", title: "Samsara", text: "Cycle of rebirth, recycling of lives over deep time. #cycle" },
-  { id: "4", topic: "gita", title: "Nishkama karma", text: "Act without clinging to results. [[Samsara]] [[Missing note]] [[Karma]]" } ] });
+  { id: "3", topic: "vedic", title: "Samsara", text: "Cycle of rebirth, recycling of lives over deep time. #cycle" },
+  { id: "4", topic: "vedic", title: "Nishkama karma", text: "Act without clinging to results. [[Samsara]] [[Missing note]] [[Karma]]" } ] });
 t("buildGraph: nodes, links, unresolved, positions", () => {
   const s = mk(), g = buildGraph(s, new Set(["pn:karma"]), new Map([["karma", "pn:karma"]]));
   assert.equal(g.nodes.length, 2 + 4); const ids = new Set(g.nodes.map((x) => x.id));

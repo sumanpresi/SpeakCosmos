@@ -552,7 +552,7 @@ export function mount(root, opts) {
       if (S.selected) for (const a of adj.get(S.selected) ?? []) must.add(a.other);
       // fair share: every topic keeps its best-connected points, so a big topic can never crowd out a small one
       const lists = new Map();
-      for (const n of heavy.slice().sort((x, y) => deg(y.id) - deg(x.id))) { const t = topicOf(n); (lists.get(t) ?? lists.set(t, []).get(t)).push(n); }
+      for (const n of heavy.slice().sort((x, y) => deg(y.id) - deg(x.id))) { const t = topicOf(n.raw || n); (lists.get(t) ?? lists.set(t, []).get(t)).push(n); }
       const rank = [], qs = [...lists.values()]; let at = 0;
       while (rank.length < budget() && qs.some((l) => at < l.length)) { for (const l of qs) if (at < l.length && rank.length < budget()) rank.push(l[at]); at++; }
       const keepH = new Set(rank.map((n) => n.id)), keepP = new Set(pts.slice(0, 6000).map((n) => n.id));
@@ -616,11 +616,14 @@ export function mount(root, opts) {
     if (!cur.links.length) return;
     const e = live.emphasis, dk = S.dark;
     const positions = new Float32Array(cur.links.length * 6), classes = new Map();
+    const arcs = [];
+    const isArc = (l) => !e && !cur.ego && islandOf.size > 1 && l.group !== "structure" && l.rel !== "BELONGS_TO" && topicOf(raw.get(l.s)) !== topicOf(raw.get(l.t));
     const cls = (l) => (e ? (e.edges.has(l.key) ? (e.kind === "highlight" ? "hi" : "focus") : "dim") : l.rel === "CONTRADICTS" ? "contra" : l.group);
     cur.links.forEach((l, i) => {
       const a = nodeCache.get(l.s), b = nodeCache.get(l.t);
       if (!a || !b) return;
       positions.set([a.fx, a.fy, a.fz, b.fx, b.fy, b.fz], i * 6);
+      if (isArc(l) && arcs.length < 700) { arcs.push({ l, a, b }); return; }
       const c = cls(l), list = classes.get(c) ?? []; list.push(i * 2, i * 2 + 1); classes.set(c, list);
     });
     const style = { structure: [ink(), dk ? 0.034 : 0.038], lexical: [ink(), dk ? 0.05 : 0.055], curated: [ink(), dk ? 0.1 : 0.1], contra: ["214,69,40", dk ? 0.7 : 0.6], hi: [accent(), 0.85], focus: [ink(), dk ? 0.38 : 0.46], dim: [ink(), dk ? 0.014 : 0.02] };
@@ -634,6 +637,111 @@ export function mount(root, opts) {
       linkGroup.add(line);
     }
     scene.add(linkGroup);
+    buildArcs(arcs);
+  }
+  // ── bridges between topics: glowing arcs, coloured from one topic to the other, that light up under the cursor ──
+  let arcGroup = null, arcList = [], arcHot = -1, arcTube = null, arcPulse = null, arcDots = null, arcTip = null, arcTex = null;
+  const glowTex = () => arcTex || (arcTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.25, "rgba(255,255,255,0.7)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })());
+  function buildArcs(list) {
+    const scene = fg.scene(), N = 30, dk = S.dark;
+    if (arcGroup) { scene.remove(arcGroup); arcGroup.children.forEach((o) => { o.geometry?.dispose(); o.material?.dispose(); }); arcGroup = null; }
+    arcList = []; arcHot = -1; arcTube = arcPulse = arcDots = null; hideArcTip();
+    if (!list.length) return;
+    const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    const pos = new Float32Array(list.length * (N - 1) * 6), col = new Float32Array(list.length * (N - 1) * 6);
+    const c1 = new THREE.Color(), c2 = new THREE.Color(), cc = new THREE.Color();
+    list.forEach((it, i) => {
+      A.set(it.a.fx, it.a.fy, it.a.fz); B.set(it.b.fx, it.b.fy, it.b.fz);
+      const mid = A.clone().add(B).multiplyScalar(0.5), d = A.distanceTo(B);
+      const out = mid.clone(); if (out.lengthSq() < 1) out.set(0, 1, 0); out.normalize().add(up.clone().multiplyScalar(0.7)).normalize();
+      C.copy(mid).addScaledVector(out, d * 0.34);
+      c1.set(topicCol(topicOf(it.a.raw))); c2.set(topicCol(topicOf(it.b.raw)));
+      if (!dk) { c1.offsetHSL(0, 0.05, -0.08); c2.offsetHSL(0, 0.05, -0.08); }
+      const pts = new Float32Array(N * 3), v = new THREE.Vector3();
+      for (let k = 0; k < N; k++) {
+        const t = k / (N - 1), u = 1 - t; v.set(u * u * A.x + 2 * u * t * C.x + t * t * B.x, u * u * A.y + 2 * u * t * C.y + t * t * B.y, u * u * A.z + 2 * u * t * C.z + t * t * B.z); v.toArray(pts, k * 3);
+      }
+      for (let k = 0; k < N - 1; k++) {
+        const o = (i * (N - 1) + k) * 6; for (let j = 0; j < 3; j++) { pos[o + j] = pts[k * 3 + j]; pos[o + 3 + j] = pts[(k + 1) * 3 + j]; }
+        cc.copy(c1).lerp(c2, k / (N - 1)); cc.toArray(col, o); cc.copy(c1).lerp(c2, (k + 1) / (N - 1)); cc.toArray(col, o + 3);
+      }
+      arcList.push({ l: it.l, a: it.a, b: it.b, pts, c1: c1.clone(), c2: c2.clone(), ph: (hashUnit(it.l.key || String(i)) * 1) });
+    });
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    arcGroup = new THREE.Group();
+    const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: dk ? 0.85 : 0.9, depthWrite: false, blending: dk ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false }));
+    lines.frustumCulled = false; lines.raycast = () => {}; lines.renderOrder = 3; arcGroup.add(lines);
+    // a few quiet lights travelling along the bridges
+    const nd = Math.min(arcList.length, 140), dp = new Float32Array(nd * 3), dc = new Float32Array(nd * 3);
+    const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(dp, 3)); dg.setAttribute("color", new THREE.BufferAttribute(dc, 3));
+    arcDots = new THREE.Points(dg, new THREE.PointsMaterial({ size: 9, map: glowTex(), vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false }));
+    arcDots.frustumCulled = false; arcDots.raycast = () => {}; arcDots.renderOrder = 4; arcDots.visible = !reduceMotion; arcGroup.add(arcDots);
+    scene.add(arcGroup);
+  }
+  window.__scArcs = () => { const cam = fg.camera(), r = stage.getBoundingClientRect(), v = new THREE.Vector3(); cam.updateMatrixWorld(); return { n: arcList.length, hot: arcHot, pts: arcList.slice(0, 40).map((a) => { v.set(a.pts[45], a.pts[46], a.pts[47]).project(cam); return [Math.round(r.left + (v.x + 1) * 0.5 * r.width), Math.round(r.top + (1 - v.y) * 0.5 * r.height), v.z < 1]; }) }; };
+  window.__scDbg = () => { const tc = {}; for (const l of cur.links) { const k = topicOf(raw.get(l.s)) + ">" + topicOf(raw.get(l.t)) + " " + l.group; tc[k] = (tc[k] || 0) + 1; } const nt = {}; for (const n of cur.nodes) { const k = topicOf(n.raw || n); nt[k] = (nt[k] || 0) + 1; } const an = {}; for (const n of allNodes) if (n.user) an[n.k] = (an[n.k] || 0) + 1; return { an, hid: [...S.hidden], tr: cur.trimmed, nt, ue: edges.filter((e) => e.user).length, islands: islandOf.size, ego: !!cur.ego, emph: !!live.emphasis, links: cur.links.length, tc }; };
+  const arcAt = (a, t) => { const f = Math.min(1, Math.max(0, t)) * 29, i = Math.min(28, Math.floor(f)), r = f - i, P = a.pts; return [P[i * 3] + (P[i * 3 + 3] - P[i * 3]) * r, P[i * 3 + 1] + (P[i * 3 + 4] - P[i * 3 + 1]) * r, P[i * 3 + 2] + (P[i * 3 + 5] - P[i * 3 + 2]) * r]; };
+  function arcAnim(now) { // called every frame while awake
+    if (!arcGroup) return false;
+    if (arcDots && arcDots.visible) {
+      const pa = arcDots.geometry.attributes.position, ca = arcDots.geometry.attributes.color, nd = pa.count, step = Math.max(1, arcList.length / nd), tmp = new THREE.Color();
+      for (let i = 0; i < nd; i++) { const a = arcList[Math.floor(i * step)], t = ((now / 2600 + a.ph) % 1), P = arcAt(a, t); pa.setXYZ(i, P[0], P[1], P[2]); tmp.copy(a.c1).lerp(a.c2, t); ca.setXYZ(i, tmp.r, tmp.g, tmp.b); }
+      pa.needsUpdate = ca.needsUpdate = true;
+    }
+    if (arcPulse && arcHot >= 0) { // the hovered bridge: a bright pulse runs from one idea to the other, and the tube breathes
+      const a = arcList[arcHot], t = (now / 1100) % 1, P = arcAt(a, t), br = 0.5 + 0.5 * Math.sin(now / 260);
+      arcPulse.position.set(P[0], P[1], P[2]); arcPulse.scale.setScalar(26 + 8 * br); arcPulse.material.color.copy(a.c1).lerp(a.c2, t).lerp(new THREE.Color(1, 1, 1), 0.35);
+      if (arcTube) arcTube.material.opacity = 0.55 + 0.3 * br;
+      return true;
+    }
+    return !!arcDots?.visible;
+  }
+  function setArcHot(i, ev) {
+    if (i === arcHot) { if (i >= 0) placeArcTip(ev); return; }
+    const scene = fg.scene();
+    if (arcTube) { scene.remove(arcTube); arcTube.geometry.dispose(); arcTube.material.dispose(); arcTube = null; }
+    if (arcPulse) { scene.remove(arcPulse); arcPulse.material.dispose(); arcPulse = null; }
+    arcHot = i; stage.style.cursor = i >= 0 ? "pointer" : "";
+    if (i < 0) { hideArcTip(); if (arcGroup) arcGroup.children[0].material.opacity = S.dark ? 0.85 : 0.9; wake(300); return; }
+    const a = arcList[i], v = []; for (let k = 0; k < 30; k++) v.push(new THREE.Vector3(a.pts[k * 3], a.pts[k * 3 + 1], a.pts[k * 3 + 2]));
+    const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(v), 48, 1.5, 6, false), mid = new THREE.Color().copy(a.c1).lerp(a.c2, 0.5);
+    arcTube = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ color: mid.clone().lerp(new THREE.Color(1, 1, 1), S.dark ? 0.35 : 0.1), transparent: true, opacity: 0.8, depthWrite: false, blending: S.dark ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false }));
+    arcTube.renderOrder = 6; arcTube.raycast = () => {};
+    arcPulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: mid, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false })); arcPulse.renderOrder = 7;
+    scene.add(arcTube); scene.add(arcPulse);
+    if (arcGroup) arcGroup.children[0].material.opacity = S.dark ? 0.32 : 0.35; // the other bridges step back
+    showArcTip(a, ev); wake(1200);
+  }
+  function showArcTip(a, ev) {
+    if (!arcTip) { arcTip = document.createElement("div"); arcTip.className = "arc-tip"; stage.appendChild(arcTip); }
+    const ta = topicOf(a.a.raw), tb = topicOf(a.b.raw), rl = REL[a.l.rel]?.verb || String(a.l.rel).toLowerCase(), warm = a.l.rel === "CONTRADICTS";
+    arcTip.innerHTML = `<div class="at-rel${warm ? " con" : ""}">${esc(rl)}</div><div class="at-row"><i style="--c:${topicCol(ta)}"></i><span><b>${esc(a.a.raw.l)}</b><small>${esc(topicInfo(ta)?.full || ta)}</small></span></div><div class="at-mid">⇅</div><div class="at-row"><i style="--c:${topicCol(tb)}"></i><span><b>${esc(a.b.raw.l)}</b><small>${esc(topicInfo(tb)?.full || tb)}</small></span></div>`;
+    arcTip.hidden = false; placeArcTip(ev);
+  }
+  function placeArcTip(ev) { if (!arcTip || !ev) return; const r = stage.getBoundingClientRect(), w = arcTip.offsetWidth || 220, h = arcTip.offsetHeight || 110; arcTip.style.left = Math.max(8, Math.min(r.width - w - 8, ev.clientX - r.left + 16)) + "px"; arcTip.style.top = Math.max(8, Math.min(r.height - h - 8, ev.clientY - r.top + 16)) + "px"; }
+  function hideArcTip() { if (arcTip) arcTip.hidden = true; }
+  { // find the bridge nearest the cursor (screen space), cheaply, once per frame at most
+    let pend = null; const v = new THREE.Vector3();
+    stage.addEventListener("pointermove", (ev) => {
+      if (!arcList.length || ev.buttons || S.hover) { if (arcHot >= 0 && (ev.buttons || S.hover)) setArcHot(-1); return; }
+      if (pend) { pend = ev; return; } pend = ev;
+      requestAnimationFrame(() => {
+        const e2 = pend; pend = null; if (!arcList.length) return;
+        const r = stage.getBoundingClientRect(), mx = e2.clientX - r.left, my = e2.clientY - r.top, cam = fg.camera(); cam.updateMatrixWorld();
+        let best = -1, bd = 11 * 11;
+        for (let i = 0; i < arcList.length; i++) {
+          const P = arcList[i].pts; let px = 0, py = 0, has = false;
+          for (let k = 0; k < 30; k += 2) {
+            v.set(P[k * 3], P[k * 3 + 1], P[k * 3 + 2]).project(cam); if (v.z > 1) { has = false; continue; }
+            const x = (v.x + 1) * 0.5 * r.width, y = (1 - v.y) * 0.5 * r.height;
+            if (has) { const dx = x - px, dy = y - py, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((mx - px) * dx + (my - py) * dy) / L)), qx = px + dx * t - mx, qy = py + dy * t - my, d = qx * qx + qy * qy; if (d < bd) { bd = d; best = i; } }
+            px = x; py = y; has = true;
+          }
+        }
+        setArcHot(best, e2);
+      });
+    }, { passive: true });
+    stage.addEventListener("pointerleave", () => setArcHot(-1));
   }
   function rebuildPoints() {
     const scene = fg.scene();
@@ -768,6 +876,7 @@ export function mount(root, opts) {
         if (slow > 40 && S.pr > 1) { S.pr = Math.max(1, S.pr - 0.25); slow = 0; ema = 20; fg.renderer().setPixelRatio(S.pr); fg.width(stage.clientWidth).height(stage.clientHeight); }
       }
       if (live.dirty) { live.dirty = false; reconcile(); }
+      if (arcAnim(performance.now())) { fading = true; if (arcHot >= 0) awakeUntil = Math.max(awakeUntil, performance.now() + 200); else if (performance.now() > awakeUntil) fading = false; }
       const cam = fg.camera(), fog = fg.scene().fog, target = fg.controls().target;
       if (fog) { const d = target ? cam.position.distanceTo(target) : 900; fog.near = d * 0.7; fog.far = d + 1350 + (cur.extent || 0); }
       const e = live.emphasis, sel = live.selected, hov = live.hover, forceAll = !!live.ego || (!!e && e.nodes.size <= 60);

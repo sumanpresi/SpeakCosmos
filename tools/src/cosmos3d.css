@@ -454,3 +454,11 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .gc .lib-row.sub{padding-left:22px}
 
 .tleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;align-items:center;max-width:46ch}.tleg i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:4px;vertical-align:-1px;box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 30%,transparent)}
+
+.arc-tip{position:absolute;z-index:30;pointer-events:none;min-width:190px;max-width:280px;padding:9px 11px;border-radius:12px;background:var(--panel,rgba(255,255,255,.96));color:var(--text,#1b1a17);box-shadow:0 8px 28px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.07);font-size:12px;animation:arcin .16s ease-out}
+.arc-tip[hidden]{display:none}
+.arc-tip .at-rel{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-bottom:5px}.arc-tip .at-rel.con{color:#d64528;opacity:1}
+.arc-tip .at-row{display:flex;gap:8px;align-items:flex-start}.arc-tip .at-row i{flex:none;width:10px;height:10px;margin-top:4px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 28%,transparent)}
+.arc-tip b{display:block;font-weight:650;line-height:1.25}.arc-tip small{opacity:.62;font-size:11px}.arc-tip .at-mid{margin:2px 0 2px 1px;opacity:.45;font-size:12px}
+@keyframes arcin{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.arc-tip{animation:none}}
