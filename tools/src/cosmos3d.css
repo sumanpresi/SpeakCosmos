@@ -194,7 +194,7 @@
 .gc-modal .mlist li{display:flex;gap:12px;align-items:flex-start}.gc-modal .mlist .ic{width:18px;height:18px;margin-top:2px;flex:none;color:var(--text2)}
 .gc-modal .mlist b{display:block;font-size:13.5px}.gc-modal .mlist span{display:block;color:var(--text2);font-size:12.5px;line-height:1.45}
 .gc-modal .mf{display:flex;justify-content:flex-end;margin-top:14px}
-@media (max-width:720px){#gcHelp,.gc-sep,.gc-ai{display:none}.gc-btn span{display:none}.gc-btn{padding:0 9px}}
+@media (max-width:720px){#gcHelp,.gc-sep{display:none}.gc-ai{padding:0 6px;flex:none}.gc-ai .lbl{display:none}.gc-ai .gc-gear{font-size:0}.gc-btn span{display:none}.gc-btn{padding:0 9px}}
 @media (max-width:720px){.gc-top{overflow:hidden}.gc-right{min-width:0;flex:1;justify-content:flex-end}.gc-search{min-width:0;flex:1;max-width:none}.gc-brand small{display:none}}
 .gc.has-ask .gc-hint{display:none}
 .gcbar-lab{display:flex;align-items:center;gap:8px;max-width:260px;font-size:13px}
@@ -493,3 +493,14 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .srcans{margin-top:8px;font-size:13.5px;line-height:1.6}.srcans p{margin:6px 0}
 
 .bd-ai{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}.bd-ans{flex:1 1 100%;font-size:13px;line-height:1.6}.bd-ans p{margin:4px 0}
+
+/* mobile: search collapses to an icon so the settings gear is always reachable */
+@media (max-width:720px){
+ .gc-search{flex:none;width:38px;min-width:38px;padding:0;justify-content:center;overflow:hidden}
+ .gc-search input{position:absolute;inset:0;width:100%;padding:0 10px 0 36px;opacity:0}
+ .gc-search>.ic{position:relative;pointer-events:none}
+ .gc-search:focus-within{position:fixed;left:8px;right:8px;top:9px;width:auto;height:36px;z-index:60;overflow:visible;justify-content:flex-start;padding:0 10px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+ .gc-search:focus-within input{position:static;opacity:1;padding:0}
+ .gc-right{gap:4px}
+ .gc-ai .gc-gear{display:inline-flex}
+}
