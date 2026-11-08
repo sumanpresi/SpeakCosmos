@@ -1055,6 +1055,70 @@ export function mount(root, opts) {
     if (task === "compare") return m ? `<p><b>${esc(n.l)}</b>: ${esc(n.d)}</p><p><b>${esc(m.l)}</b>: ${esc(m.d)}</p>` : `<p>${esc(n.d)}</p>`;
     return `<p>${esc(n.d)}</p>${task === "why" && rel.length ? `<ul>${rel.slice(0, 5).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}`;
   }
+  // ── "What the speaker says": the transcript behind a note (English + Bengali) and AI that explains it further ──────
+  const SRC_MAP = { "u:reservation-what-why": ["what", "Lecture · Reservation: what and why"], "u:reservation-nehru-ambedkar": ["nehru", "Podcast · UGC rules, Ambedkar and Nehru"], "u:reservation-generations": ["vikas", "Clip · Generations and casteism"] };
+  const SRCD = new Map(), SRCV = new Map(), SRCAI = new Map();
+  let srcLang = read("sc_srclang") || "en";
+  const tsec = (t) => { const p = t.split(":").map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; };
+  const tfmt = (x) => { x = Math.round(x); const h = Math.floor(x / 3600), m = Math.floor((x % 3600) / 60), s = x % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0"); };
+  function srcRange(n) {
+    const m = n.text && n.text.match(/\(≈([^)]*)\)/); if (!m) return null; let lo = 1e9, hi = 0;
+    for (const x of m[1].matchAll(/(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*[–-]\s*(\d{1,2}:\d{2}(?::\d{2})?))?/g)) { const a = tsec(x[1]), b = x[2] ? tsec(x[2]) : a + 90; lo = Math.min(lo, a); hi = Math.max(hi, b); }
+    return hi ? [Math.max(0, lo - 20), hi + 20] : null;
+  }
+  const srcShell = (n) => { const m = SRC_MAP[n.t]; if (!m || !srcRange(n)) return ""; return `<div class="srcbox" data-src="${esc(n.id)}"><button class="gcbtn" data-srcact="open">🎙 What the speaker says</button><button class="gcbtn" data-srcact="tr" lang="bn">বাংলায় পড়ুন</button><div class="srcout"></div></div>`; };
+  const srcLoad = (f) => SRCD.get(f) || (SRCD.set(f, fetch(`assets/res/${f}.json`).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).catch((e) => { SRCD.delete(f); throw e; })), SRCD.get(f));
+  function fillSrc(el) { for (const b of el.querySelectorAll(".srcbox")) if (SRCV.get(b.dataset.src)?.open) renderSrc(b.dataset.src); else if (SRCAI.has("tr|" + b.dataset.src)) renderSrc(b.dataset.src); }
+  const srcPassage = (rows, lo, hi) => rows.filter((r) => r[0] >= lo && r[0] <= hi);
+  async function renderSrc(nid) {
+    const box = root.querySelector(`.srcbox[data-src="${CSS.escape(nid)}"]`), out = box?.querySelector(".srcout"), n = raw.get(nid); if (!out || !n) return;
+    const v = SRCV.get(nid) || {}, tr = SRCAI.get("tr|" + nid), meta = SRC_MAP[n.t];
+    let html = tr ? `<div class="srctr" lang="bn"><span class="lab">বাংলা অনুবাদ (AI)</span>${String(tr).split(/\n+/).map((p) => `<p>${esc(p)}</p>`).join("")}</div>` : "";
+    if (v.open) {
+      let rows; try { rows = await srcLoad(meta[0]); } catch (e) { out.innerHTML = html + `<p class="sub">Could not load the transcript. Check your connection.</p>`; return; }
+      const base = srcRange(n), lo = v.lo ?? base[0], hi = v.hi ?? Math.min(base[1], base[0] + 360), seg = srcPassage(rows, lo, hi), blocks = new Map();
+      for (const r of seg) { const k = Math.floor(r[0] / 30) * 30; (blocks.get(k) ?? blocks.set(k, []).get(k)).push(r); }
+      const lines = [...blocks].map(([k, l]) => `<div class="srcrow"><time>${tfmt(k)}</time><div>${srcLang !== "bn" ? `<p>${esc(l.map((x) => x[1]).join(" "))}</p>` : ""}${srcLang !== "en" ? `<p lang="bn" class="bn">${esc(l.map((x) => x[2]).join(" "))}</p>` : ""}</div></div>`).join("");
+      const st = (cb.aiState && cb.aiState()) || { ok: false }, ai = SRCAI.get("q|" + nid);
+      html += `<div class="srchead"><span class="lab">${esc(meta[1])} · ${tfmt(lo)}–${tfmt(hi)}</span><div class="seg" role="group" aria-label="Language"><button data-srcact="lang" data-l="en" class="${srcLang === "en" ? "on" : ""}">English</button><button data-srcact="lang" data-l="bn" lang="bn" class="${srcLang === "bn" ? "on" : ""}">বাংলা</button><button data-srcact="lang" data-l="both" class="${srcLang === "both" ? "on" : ""}">Both</button></div></div>
+        <div class="srclines">${lines || "<p class='sub'>No lines in this range.</p>"}</div>
+        <div class="srcnav"><button class="gcbtn" data-srcact="earlier">← Earlier</button><button class="gcbtn" data-srcact="later">Later →</button><button class="gcbtn" data-srcact="close">Hide</button></div>
+        <p class="srcnote">Machine-translated from Hindi, so some lines are rough. The AI below reads the same passage and explains it.</p>
+        <div class="srcai"><span class="lab">Ask AI about this part ${st.ok ? "" : "<em>· not connected</em>"}</span><div class="aibtns">${[["Explain in detail", "Explain what the speaker says here in detail, step by step."], ["Examples he uses", "Which examples or stories does the speaker use here, and what point does each make?"], ["Key points", "Give the key points of this passage as short bullets."], ["Why does he say this?", "Why does the speaker make this argument, and what is he answering?"]].map(([t, q]) => `<button class="gcbtn" data-srcact="ask" data-q="${esc(q)}">${t}</button>`).join("")}</div>
+        <form class="srcform aiform" data-srcform="${esc(nid)}"><input name="q" maxlength="300" placeholder="Ask about this passage…" autocomplete="off" aria-label="Ask about this passage"><button class="gcbtn primary" type="submit">Ask</button></form>
+        <div class="srcans" aria-live="polite">${ai || ""}</div>${st.ok ? "" : `<button class="lnk" data-nav="settings">Connect AI for explanations</button>`}</div>`;
+    }
+    out.innerHTML = html;
+  }
+  async function srcAsk(nid, q, { translate = false } = {}) {
+    const n = raw.get(nid), meta = n && SRC_MAP[n.t]; if (!n) return;
+    const st = (cb.aiState && cb.aiState()) || { ok: false };
+    const key = translate ? "tr|" + nid : "q|" + nid, v = SRCV.get(nid) || (SRCV.set(nid, {}), SRCV.get(nid));
+    if (!st.ok || !cb.ask) { if (translate) { srcLang = "bn"; store("sc_srclang", srcLang); v.open = true; renderSrc(nid); toast("Showing the Bengali transcript. Connect AI in Settings to translate the note itself.", 6000); } else toast("Connect AI in Settings to use this."); return; }
+    const box = root.querySelector(`.srcbox[data-src="${CSS.escape(nid)}"] .srcout`); if (!box) return;
+    if (translate) { const c = read("sc_bn_" + nid); if (c) { SRCAI.set(key, c); renderSrc(nid); return; } box.insertAdjacentHTML("afterbegin", `<p class="aithink srcthink">Translating…</p>`); }
+    else { v.open = true; const a = box.querySelector(".srcans"); if (a) a.innerHTML = `<p class="aithink">Thinking…</p>`; }
+    try {
+      let source = ""; if (!translate) { const rows = await srcLoad(meta[0]), base = srcRange(n), lo = v.lo ?? base[0], hi = v.hi ?? Math.min(base[1], base[0] + 360); source = srcPassage(rows, lo, hi).map((r) => `[${tfmt(r[0])}] ${r[1]}`).join("\n"); }
+      const r = await cb.ask(translate ? "__translate" : q, [{ l: n.l, k: "note", d: plainTxt(n.text || "") }], { topic: "source", lang: translate || srcLang === "bn" ? "bn" : "en", source });
+      const ans = String(r?.answer || "").trim(); if (!ans) throw new Error("empty");
+      SRCAI.set(key, translate ? ans : ans.split(/\n+/).map((p) => `<p ${srcLang === "bn" ? 'lang="bn"' : ""}>${esc(p)}</p>`).join("") + `<span class="aitag">AI · from the transcript passage above</span>`);
+      if (translate) store("sc_bn_" + nid, ans);
+    } catch (e) { SRCAI.set(key, translate ? "" : `<p class="sub">The AI did not respond${e?.message ? " (" + esc(String(e.message).slice(0, 80)) + ")" : ""}. Try again.</p>`); if (translate) toast("Could not translate now. Try again."); }
+    renderSrc(nid);
+  }
+  root.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-srcact]"); if (!b) return; const box = b.closest(".srcbox"), nid = box?.dataset.src; if (!nid) return; e.stopPropagation();
+    const v = SRCV.get(nid) || (SRCV.set(nid, {}), SRCV.get(nid)), n = raw.get(nid), act = b.dataset.srcact, base = n && srcRange(n);
+    if (act === "open") { v.open = true; renderSrc(nid); }
+    else if (act === "close") { v.open = false; renderSrc(nid); }
+    else if (act === "lang") { srcLang = b.dataset.l; store("sc_srclang", srcLang); renderSrc(nid); }
+    else if (act === "earlier" && base) { v.lo = Math.max(0, (v.lo ?? base[0]) - 180); v.hi = v.hi ?? Math.min(base[1], base[0] + 360); SRCAI.delete("q|" + nid); renderSrc(nid); }
+    else if (act === "later" && base) { v.lo = v.lo ?? base[0]; v.hi = (v.hi ?? Math.min(base[1], base[0] + 360)) + 180; SRCAI.delete("q|" + nid); renderSrc(nid); }
+    else if (act === "ask") srcAsk(nid, b.dataset.q);
+    else if (act === "tr") srcAsk(nid, "", { translate: true });
+  });
+  root.addEventListener("submit", (e) => { const f = e.target.closest(".srcform"); if (!f) return; e.preventDefault(); const q = f.q.value.trim(); if (q) { f.q.value = ""; srcAsk(f.dataset.srcform, q); } });
   const aiBlock = (n) => {
     const st = (cb.aiState && cb.aiState()) || { ok: false }, cur = aiOut.get(n.id);
     return `<div class="gcai" data-ai-node="${esc(n.id)}"><span class="lab">AI guide ${st.ok ? "" : `<em>· not connected, showing graph notes</em>`}</span>
@@ -1131,7 +1195,7 @@ export function mount(root, opts) {
       out.push(`<div class="chips">${n.sub ? `<span class="chip">${esc(n.sub)}</span>` : ""}${hub ? `<span class="chip" style="--c:${hub.c}">${esc(hub.l)}</span>` : ""}</div><h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p><p class="gcsrc">From Dr. Vikas Divyakirti's philosophy lecture series, paraphrased. Follow the links below to see who influenced or challenged whom.</p><div class="actions"><button class="gcbtn" data-lens-go="lineage" data-id="${esc(n.id)}">See lineage</button></div>${aiBlock(n)}`);
     } else if (n.user && (n.k === "note" || n.k === "spark")) {
       const miss = unresolved.get(n.id) ?? [];
-      out.push(`<div class="chips"><span class="chip" style="--c:${hub?.c}">${esc(hub?.l ?? "")}</span>${n.k === "spark" ? '<span class="chip">New idea</span>' : ""}</div><h2>${esc(n.l)}</h2><div class="notebody">${noteHtml(n.text || "")}</div>${miss.length ? `<div class="mnote"><b>Not written yet</b> ${miss.slice(0, 8).map((t) => `<button class="cb" data-act="create-note" data-title="${esc(t)}" data-topic="${esc(n.t.slice(2))}">+ ${esc(clip(t, 26))}</button>`).join("")}</div>` : ""}<div class="actions"><button class="gcbtn primary" data-act="edit-note" data-id="${esc(n.id)}">Edit</button></div>`);
+      out.push(`<div class="chips"><span class="chip" style="--c:${hub?.c}">${esc(hub?.l ?? "")}</span>${n.k === "spark" ? '<span class="chip">New idea</span>' : ""}</div><h2>${esc(n.l)}</h2><div class="notebody">${noteHtml(n.text || "")}</div>${miss.length ? `<div class="mnote"><b>Not written yet</b> ${miss.slice(0, 8).map((t) => `<button class="cb" data-act="create-note" data-title="${esc(t)}" data-topic="${esc(n.t.slice(2))}">+ ${esc(clip(t, 26))}</button>`).join("")}</div>` : ""}${srcShell(n)}<div class="actions"><button class="gcbtn primary" data-act="edit-note" data-id="${esc(n.id)}">Edit</button></div>`);
     } else if (n.k === "note") {
       out.push(`<h2>${esc(n.l)}</h2><p class="gclead">${esc(n.d)}</p>`);
     } else {
@@ -1158,7 +1222,7 @@ export function mount(root, opts) {
     el.innerHTML = `<div class="ins-head"><span class="kind">${dot(k)}${esc(n.sub || KIND[k]?.label.replace(/s$/, "") || "")}</span><button class="x" id="gcClose" aria-label="Close">×</button></div><div class="ins-body">${inspectorBody(n)}</div>`;
     el.hidden = false; el.scrollTop = 0; root.classList.add("has-ins");
     el.querySelector("#gcClose").onclick = () => select(null);
-    fillGita(el); syncTabs();
+    fillGita(el); fillSrc(el); syncTabs();
   }
 
   // ── focus bar ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -1963,6 +2027,7 @@ export function mount(root, opts) {
     setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, reduceMotion ? 0 : 800), 150);
     return true;
   }
+  window.__scSel = (label) => { const n = allNodes.find((x) => x.l === label); if (n) select(n.id); return !!n; };
   window.__scFocusIdea = (label) => { const n = allNodes.find((x) => plain(x) && x.l === label); if (n) { select(n.id); focusIdea(n.id); } return !!S.focus; }; window.__scState = () => ({ focus: S.focus && S.focus.keep.size, lens: S.lens, chain: L.chain, lf: L.focus });
   function clearFocus() {
     if (!S.focus) return; S.mode = S.focus.prevMode || "focus"; S.focus = null; S.selected = null; islandOf.clear(); scopeChanged(); syncTabs();

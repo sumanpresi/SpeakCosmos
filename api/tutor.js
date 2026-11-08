@@ -14,6 +14,19 @@ function cleanModel(v){return String(v||'').trim().replace(/[^a-zA-Z0-9._:/-]/g,
 function askPayload(body){
   const q=String(body?.question||'').slice(0,500);
   const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,16).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,560)}`).join('\n');
+  if(String(body?.topic||'')==='source'){
+    const bn=String(body?.lang||'')==='bn',src=String(body?.source||'').slice(0,9000),note=(Array.isArray(body?.context)?body.context:[])[0]||{},tr=/^__translate/.test(q);
+    const nt=`Title: ${String(note.l||'').slice(0,120)}\nNote: ${String(note.d||'').slice(0,900)}`;
+    return {
+      mode:'ask',
+      max:tr?1600:2200,
+      answer:q||'source',
+      system:tr
+        ?'Translate the learner\'s note into clear, natural Bengali (বাংলা). Keep names, numbers, timestamps and the meaning exactly; do not add or remove ideas. Return JSON only: {"answer":"<the Bengali translation>"}'
+        :'You help a learner understand what a speaker says in a lecture or podcast. You get the learner\'s note and the matching passage of an automatic English translation of a Hindi transcript. The passage is machine-translated and sometimes garbled, so reconstruct the likely meaning from the surrounding lines and say plainly when a part is unclear. Use ONLY the passage and the note; add no outside facts and do not invent quotes. Attribute ideas to the speaker ("he says"). Go deeper than the note: explain the argument step by step and include the examples the speaker uses, in under 300 words, with short paragraphs or bullets. Write the answer in '+(bn?'Bengali (বাংলা)':'simple English')+'. Return JSON only: {"answer":"..."}',
+      user:tr?nt:`Question: ${q}\n\n${nt}\n\nTranscript passage:\n${src}`
+    };
+  }
   if(String(body?.topic||'')==='judge'){
     return {
       mode:'ask',
@@ -77,7 +90,7 @@ function promptPayload(body){
 function safeResult(obj,mode){
   if(mode==='ask'){
     if(!obj||(!obj.answer&&!obj.verdicts&&!obj.pairs))throw new Error('Invalid AI answer');
-    const out={answer:String(obj.answer||'').slice(0,1400),bn:String(obj.bn||'').slice(0,900)};
+    const out={answer:String(obj.answer||'').slice(0,3200),bn:String(obj.bn||'').slice(0,900)};
     const V=['similar','contradicts','complements','unrelated'];
     if(Array.isArray(obj.verdicts))out.verdicts=obj.verdicts.slice(0,16).map(v=>({i:Math.round(+v?.i)||0,verdict:V.includes(String(v?.verdict))?String(v.verdict):'unrelated',why:String(v?.why||'').slice(0,220)})).filter(v=>v.i>0);
     if(Array.isArray(obj.pairs))out.pairs=obj.pairs.slice(0,8).map(v=>({a:Math.round(+v?.a)||0,b:Math.round(+v?.b)||0,why:String(v?.why||'').slice(0,220)})).filter(v=>v.a>0&&v.b>0&&v.a!==v.b);

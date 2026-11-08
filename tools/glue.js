@@ -55,7 +55,7 @@
       const pv=data.settings.aiProvider||'server',headers={'Content-Type':'application/json'};
       if(pv==='server')headers['x-app-access-token']=sessionStorage.getItem('speakcosmos-ai-token')||'';
       else headers['x-user-api-key']=sessionStorage.getItem('speakcosmos-provider-api-key')||'';
-      const r=await fetch('/api/tutor',{method:'POST',headers,body:JSON.stringify({mode:'ask',provider:pv,model:data.settings.aiModel||'',question,context,topic:(opts&&opts.topic)||'',topicName:(opts&&opts.name)||''})});
+      const r=await fetch('/api/tutor',{method:'POST',headers,body:JSON.stringify({mode:'ask',provider:pv,model:data.settings.aiModel||'',question,context,topic:(opts&&opts.topic)||'',topicName:(opts&&opts.name)||'',lang:(opts&&opts.lang)||'',source:(opts&&opts.source)||''})});
       if(!r.ok){let m='';try{m=(await r.json()).error||''}catch(e){}throw new Error(m||('AI error '+r.status))}
       return r.json();
     }
