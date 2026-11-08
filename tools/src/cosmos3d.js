@@ -774,7 +774,35 @@ export function mount(root, opts) {
     bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}<div class="bd-note-box" id="bdNote">${bridgeNoteHtml(own)}</div></div>${side(B, tb, "b")}</div><div class="bd-ai"><button class="gcbtn" data-bd="explain">✨ Explain this connection</button><button class="gcbtn" data-bd="explain-bn" lang="bn">বাংলায়</button><div class="bd-ans" aria-live="polite"></div></div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${own ? `<button class="gcbtn" data-bd="edit">✎ Edit connection</button>` : ""}${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
     bridgeEl.hidden = false; root.classList.add("has-bridge"); wake(1500);
   }
-  let arcTags = [];
+  // ── no overlapping text: labels are ranked, and a lower-ranked label that would land on a higher-ranked one is hidden ──
+  const dcV = new THREE.Vector3(), dcQ = new THREE.Vector3();
+  function declutter() {
+    const cam = fg.camera(); if (!cam || !stage.clientWidth) return; cam.updateMatrixWorld();
+    const W = stage.clientWidth, H = stage.clientHeight, T = Math.tan((cam.fov * Math.PI) / 360), items = [];
+    const add = (sp, prio, vis) => {
+      if (!sp) return; sp.getWorldPosition(dcV); dcQ.copy(dcV).applyMatrix4(cam.matrixWorldInverse); const dz = -dcQ.z;
+      if (dz <= 1) { sp.userData.dcHide = true; sp.visible = false; return; }
+      const k = H / 2 / (T * dz), w = sp.scale.x * k, h = sp.scale.y * k; dcV.project(cam);
+      items.push({ sp, prio, vis, x: (dcV.x + 1) * 0.5 * W, y: (1 - dcV.y) * 0.5 * H, w, h });
+    };
+    for (const t of arcTags) add(t, 100, true);
+    const bridgeText = new Set(arcTags.map((t) => t.text));
+    if (islandTags) for (const c of islandTags.children) if (c.isSprite && c.text) add(c, bridgeText.has(c.text) ? -1 : 50, true);
+    for (const [id, v] of visuals) if (v.label && v.labelOpacity > 0.02) add(v.label, id === live.selected || id === live.hover ? 90 : 10 + v.labelOpacity * 5, v.labelOpacity > 0.02);
+    for (const [, l] of marks.pointLabels) add(l, 30, true);
+    items.sort((a, b) => b.prio - a.prio);
+    const placed = [];
+    for (const it of items) {
+      const x0 = it.x - it.w / 2 - 3, x1 = it.x + it.w / 2 + 3, y0 = it.y - it.h / 2 - 2, y1 = it.y + it.h / 2 + 2;
+      let hit = it.prio < 0; // a topic name that a connection label already shows
+      if (!hit) for (const q of placed) if (x0 < q[2] && x1 > q[0] && y0 < q[3] && y1 > q[1]) { hit = true; break; }
+      if (it.prio >= 100) hit = false; // connection labels always show; the rest step aside
+      const off = x1 < 0 || x0 > W || y1 < 0 || y0 > H;
+      it.sp.userData.dcHide = hit; it.sp.visible = !hit && it.vis;
+      if (!hit && !off) placed.push([x0, y0, x1, y1]);
+    }
+  }
+  let arcTags = [], tickN = 0;
   function setArcHot(i, ev) {
     if (i === arcHot) { if (i >= 0) placeArcTip(ev); return; }
     const scene = fg.scene();
@@ -1007,8 +1035,9 @@ export function mount(root, opts) {
         fading = true;
         v.labelOpacity += (t - v.labelOpacity) * 0.2;
         if (Math.abs(v.labelOpacity - t) < 0.004) v.labelOpacity = t;
-        v.label.material.opacity = v.labelOpacity; v.label.visible = v.labelOpacity > 0.02;
+        v.label.material.opacity = v.labelOpacity; v.label.visible = v.labelOpacity > 0.02 && !v.label.userData.dcHide;
       }
+      if ((tickN = (tickN + 1) % 3) === 0 || !fading) declutter();
       if (!fg.controls().autoRotate && !fading && !live.emphasis?.path && performance.now() > awakeUntil) { running = false; sleeping = true; lastT = 0; fg.pauseAnimation(); return; }
       raf = requestAnimationFrame(tick);
     };
