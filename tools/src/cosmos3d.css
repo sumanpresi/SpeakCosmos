@@ -428,3 +428,9 @@ a.gcbtn{display:inline-flex;align-items:center;text-decoration:none}
 .gc-toast .tt-undo{margin-left:10px;border:0;border-radius:6px;padding:3px 10px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.92);color:#222}
 .cn-row.batch{background:rgba(120,140,255,.1);border-radius:8px;padding:4px 6px}
 @media(max-width:560px){.cl-chip{font-size:11px;padding:4px 7px}}
+.gc .ur{min-width:34px;font-size:16px;padding:5px 9px}.gc .ur:disabled{opacity:.35;cursor:default}
+.gc .cmp h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.gc .cmp-top{display:flex;flex-wrap:wrap;gap:8px}.gc .cmp-t{font-size:12.5px;padding:3px 10px;border-radius:99px;background:var(--line)}
+.gc .cmp-w{display:flex;flex-wrap:wrap;gap:6px}.gc .cmp-w span{padding:2px 9px;border-radius:99px;background:rgba(120,140,255,.14);font-size:12.5px}
+.gc .cmp-u{margin:4px 0;font-size:13px}.gc .cmp-b{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.gc .gcbtn.sm{font-size:12px;padding:3px 10px}

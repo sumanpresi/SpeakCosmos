@@ -198,25 +198,32 @@ export function mount(root, opts) {
   let SS = null; // topics shown in the current tab (null = everything)
   const inScope = (n) => !SS || SS.has(topicOf(n));
   const islandOf = new Map();
-  const posOf = (n) => { if (!S.scope) return n.p; const q = n.q || n.p, o = islandOf.get(topicOf(n)); return o ? [q[0] + o[0], q[1] + o[1], q[2] + o[2]] : q; };
+  const islandR = new Map();
+  const splitOn = () => !S.scope && S.split && S.lens === "explore";
+  function layoutIslands(list) {
+    islandOf.clear(); islandR.clear();
+    const rad = new Map(list.map((t) => [t, 40]));
+    for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1], q[2]))); } }
+    const m = list.length, rs = list.map((t) => rad.get(t));
+    let R = 0; if (m > 1) for (let i = 0; i < m; i++) R = Math.max(R, (rs[i] + rs[(i + 1) % m] + 170) / (2 * Math.sin(Math.PI / m)));
+    list.forEach((t, i) => { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); islandR.set(t, rs[i]); });
+  }
+  const posOf = (n) => {
+    if (!S.scope) { if (!splitOn()) return n.p; if (!islandOf.size) layoutIslands([...new Set(allNodes.map(topicOf))].filter((t) => topicInfo(t))); }
+    const q = n.q || n.p, o = islandOf.get(topicOf(n)); return o && (S.scope || splitOn()) ? [q[0] + o[0], q[1] + o[1], q[2] + o[2]] : (S.scope ? q : n.p);
+  };
   function scopeChanged() {
     const c = colOf(S.scope);
     SS = S.scope == null ? null : c ? new Set(c.topics) : new Set([S.scope]);
-    islandOf.clear();
-    if (c) {
-      const rad = new Map(c.topics.map((t) => [t, 40]));
-      for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1], q[2]))); } }
-      const m = c.topics.length, rs = c.topics.map((t) => rad.get(t));
-      let R = 0; if (m > 1) for (let i = 0; i < m; i++) R = Math.max(R, (rs[i] + rs[(i + 1) % m] + 170) / (2 * Math.sin(Math.PI / m)));
-      c.topics.forEach((t, i) => { const th = (i / m) * Math.PI * 2; islandOf.set(t, [Math.round(R * Math.cos(th)), 0, Math.round(R * Math.sin(th))]); });
-    }
-    if (circle) circle.visible = !S.scope || S.scope === "eng" || S.scope === "phil";
+    islandOf.clear(); islandR.clear();
+    if (c) layoutIslands(c.topics);
+    if (circle) circle.visible = (!S.scope && !splitOn()) || S.scope === "eng" || S.scope === "phil";
   }
   const resolveTitle = (t) => labelIndex.get(norm(t)) ?? null;
   const tm = (name, f) => { const t0 = performance.now(), r = f(); (window.__scTimings ??= []).push([name, Math.round(performance.now() - t0)]); return r; };
   function syncUser({ persist = false } = {}) {
     for (const id of userIds) { raw.delete(id); adj.delete(id); nodeCache.delete(id); visuals.delete(id); }
-    userIds = new Set(); allNodes.length = baseAll; edges.length = baseEdgeCount;
+    userIds = new Set(); allNodes.length = baseAll; edges.length = baseEdgeCount; if (!S.scope) islandOf.clear();
     for (const [id, l] of adj) if (l.length && l.some((a) => a.e.user)) adj.set(id, l.filter((a) => !a.e.user));
     const g = tm("buildGraph", () => buildGraph(U, baseIds, baseByLabel, { radius: Math.round(baseExtent * 1.7) }));
     for (const n of g.nodes) { if (n.k !== "hub") n.sub = (U.topics.find((t) => "u:" + t.id === n.t)?.label ?? "") + (n.k === "spark" ? " · new idea" : ""); raw.set(n.id, n); adj.set(n.id, []); allNodes.push(n); userIds.add(n.id); }
@@ -283,15 +290,22 @@ export function mount(root, opts) {
   };
   const onOnline = () => { if (cloudOn()) cloudSync(false); };
   // ── undo and restore points ───────────────────────────────────────────────────────────────────────────────
-  const UNDO = []; let undoBytes = 0;
+  const UNDO = [], REDO = []; let undoBytes = 0;
+  const updUR = () => { const u = $("#gcUndo"), r = $("#gcRedo"); if (u) { u.disabled = !UNDO.length; u.title = UNDO.length ? "Undo: " + UNDO[UNDO.length - 1].label + " (Ctrl+Z)" : "Nothing to undo"; } if (r) { r.disabled = !REDO.length; r.title = REDO.length ? "Redo: " + REDO[REDO.length - 1].label + " (Ctrl+Shift+Z)" : "Nothing to redo"; } };
   function checkpoint(label) {
-    const j = JSON.stringify(U); UNDO.push({ label, j }); undoBytes += j.length;
+    const j = JSON.stringify(U); UNDO.push({ label, j }); undoBytes += j.length; REDO.length = 0;
     while (UNDO.length > 40 || (undoBytes > 48e6 && UNDO.length > 1)) undoBytes -= UNDO.shift().j.length;
+    updUR();
   }
   function undo() {
     const e = UNDO.pop(); if (!e) { toast("Nothing to undo."); return false; }
-    undoBytes -= e.j.length; U = restoreSnapshot(U, JSON.parse(e.j)); afterDataChange();
+    undoBytes -= e.j.length; REDO.push({ label: e.label, j: JSON.stringify(U) }); U = restoreSnapshot(U, JSON.parse(e.j)); afterDataChange(); updUR();
     toast("Undone: " + e.label + ".", 4200); return true;
+  }
+  function redo() {
+    const e = REDO.pop(); if (!e) { toast("Nothing to redo."); return false; }
+    const j = JSON.stringify(U); UNDO.push({ label: e.label, j }); undoBytes += j.length; U = restoreSnapshot(U, JSON.parse(e.j)); afterDataChange(); updUR();
+    toast("Redone: " + e.label + ".", 4200); return true;
   }
   let RP = [];
   async function pushRestorePoint(label) {
@@ -316,7 +330,7 @@ export function mount(root, opts) {
   const S = {
     dark: prefersDark, colorBy: "kind", hidden: new Set(), edgeGroups: { structure: true, curated: true, lexical: true },
     mode: "focus", depth: 1, selected: null, hover: null, highlight: null, autoRotate: !matchMedia("(prefers-reduced-motion: reduce)").matches,
-    tool: null, legend: root.clientWidth >= 720, query: "", lens: "explore", scope: null, bridgeOnly: false, pr: 2,
+    tool: null, legend: root.clientWidth >= 720, query: "", lens: "explore", scope: null, split: true, bridgeOnly: false, pr: 2,
   };
   const coarse = matchMedia("(pointer: coarse)").matches;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -551,7 +565,7 @@ export function mount(root, opts) {
   }
 
   // ── batched links: one LineSegments per visual class ──────────────────────────────────────────────────────
-  let linkGroup = null, pointMeshes = null, egoTags = null, circle = null;
+  let linkGroup = null, pointMeshes = null, egoTags = null, circle = null, islandTags = null;
   const ink = () => (S.dark ? "237,234,228" : "27,26,23");
   const accent = () => (S.dark ? "227,164,75" : "154,90,12");
   function rebuildLinks() {
@@ -607,6 +621,20 @@ export function mount(root, opts) {
     if (dim.length) pointMeshes.add(batch(dim, true));
     scene.add(pointMeshes);
   }
+  function rebuildIslandTags() {
+    const scene = fg.scene();
+    if (islandTags) { scene.remove(islandTags); islandTags.children.forEach((o) => { o.material.map?.dispose(); o.material.dispose(); }); islandTags = null; }
+    if (circle) circle.visible = (!S.scope && !splitOn()) || S.scope === "eng" || S.scope === "phil";
+    if (cur.ego || !islandOf.size || (!S.scope && !splitOn())) return;
+    const shown = new Set(cur.nodes.map((g) => topicOf(g.raw || g))); islandTags = new THREE.Group();
+    for (const [t, o] of islandOf) {
+      if (!shown.has(t)) continue;
+      const info = topicInfo(t), r = islandR.get(t) || 60;
+      const tag = new SpriteText(info?.label || t, Math.max(14, Math.min(64, (cur.extent || 440) / (mobile() ? 11 : 15))), S.dark ? "#f0e6d6" : "#2a2620"); tag.fontWeight = "600"; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 5;
+      tag.position.set(o[0], o[1] + r * 0.62 + 30, o[2]); islandTags.add(tag);
+    }
+    scene.add(islandTags); window.__scIslands = () => islandTags.children.map((c) => [c.text, c.position.toArray().map(Math.round), c.visible]);
+  }
   function rebuildEgoTags() {
     const scene = fg.scene();
     if (egoTags) { scene.remove(egoTags); egoTags.children.forEach((o) => { o.material.map?.dispose(); o.material.dispose(); }); egoTags = null; }
@@ -659,7 +687,7 @@ export function mount(root, opts) {
     live.ego = cur.ego ? new Set(cur.nodes.map((n) => n.id)) : null;
     const pathLinks = live.emphasis?.path ? cur.links.filter((l) => live.emphasis.edges.has(l.key)).map((l) => ({ key: l.key, source: nodeCache.get(l.s), target: nodeCache.get(l.t) })) : [];
     tm("graphData", () => fg.graphData({ nodes: cur.nodes, links: pathLinks }));
-    tm("links+points", () => { rebuildLinks(); rebuildPoints(); rebuildEgoTags(); });
+    tm("links+points", () => { rebuildLinks(); rebuildPoints(); rebuildEgoTags(); rebuildIslandTags(); });
     live.dirty = true; wake(900);
     const k = cur.ego ? cur.ego.id + ":" + S.depth : null;
     if (frame || k !== egoKey) { egoKey = k; if (cur.ego) setTimeout(fitEgo, 90); }
@@ -938,7 +966,7 @@ export function mount(root, opts) {
       return;
     }
     if (!S.selected) {
-      el.innerHTML = `<span class="gcbar-lab"><b>${esc(scopeLabel())}</b><span class="count">${scopeCount().toLocaleString()} points${cur.trimmed ? ` · showing the ${cur.trimmed.shown.toLocaleString()} best connected` : ""} · click one to focus</span></span>${colOf(S.scope) ? `<div class="seg"><button data-bridge="0" class="${S.bridgeOnly ? "" : "on"}">All points</button><button data-bridge="1" class="${S.bridgeOnly ? "on" : ""}">Bridges only</button></div>` : ""}${seg("whole")}`;
+      el.innerHTML = `<span class="gcbar-lab"><b>${esc(scopeLabel())}</b><span class="count">${scopeCount().toLocaleString()} points${cur.trimmed ? ` · showing the ${cur.trimmed.shown.toLocaleString()} best connected` : ""} · click one to focus</span></span>${!S.scope && S.lens === "explore" ? `<button class="gcbtn ghost sm" data-act="toggle-split" title="Show each topic as its own cluster, or all blended together">${S.split ? "Blend clusters" : "Separate clusters"}</button>` : ""}${colOf(S.scope) ? `<div class="seg"><button data-bridge="0" class="${S.bridgeOnly ? "" : "on"}">All points</button><button data-bridge="1" class="${S.bridgeOnly ? "on" : ""}">Bridges only</button></div>` : ""}${seg("whole")}`;
       return;
     }
     const n = raw.get(S.selected), ego = cur.ego, c = deg(S.selected);
@@ -1512,6 +1540,7 @@ export function mount(root, opts) {
   function toast(msg, ms = 3600, undoable = false) { toastEl.innerHTML = esc(msg) + (undoable && UNDO.length ? ' <button class="tt-undo" data-undo="1">Undo</button>' : ""); toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, ms); }
   toastEl.addEventListener("click", (e) => { if (e.target.closest("[data-undo]")) { toastEl.hidden = true; undo(); } });
   function chromeSave() {
+    updUR();
     const cc = $("#gcCloud");
     if (cc) { cc.hidden = !cb.cloud; cc.dataset.s = CL.state; cc.textContent = { off: "Connect Drive", syncing: "Syncing…", synced: "Synced ✓", error: "Retry sync", none: "" }[CL.state] || ""; cc.title = CL.state === "synced" ? "Saved in your Google Drive and kept in step with your other devices. Click to sync now." : CL.state === "error" ? "Sync failed: " + CL.err + ". Click to retry." : CL.state === "off" ? "Click to keep everything in your Google Drive and use it on every device." : "Syncing with Google Drive…"; }
     const el = $("#gcSave"); if (!el) return;
@@ -1524,7 +1553,7 @@ export function mount(root, opts) {
     const el = $("#gcTopics"), cnt = countsByTopic(), on = S.lens === "explore" ? S.scope || "" : null;
     const tab = (id, label, extra = "", color = "") => `<button class="tp ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
     el.innerHTML = `<div class="tp-scroll">${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${U.topics.map((t) => tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>`, t.color)).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}</div>
-      <div class="tp-right"><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Connections</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
+      <div class="tp-right"><button class="tp tool ur" data-act="undo" id="gcUndo" aria-label="Undo" disabled>↶</button><button class="tp tool ur" data-act="redo" id="gcRedo" aria-label="Redo" disabled>↷</button><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Compare</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
     chromeSave();
   }
   function renderEmpty() {
@@ -1580,11 +1609,41 @@ export function mount(root, opts) {
         <div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Create topic</button></div>
       </form>`, "wide");
   }
+  function editTopicModal(id) {
+    const t = U.topics.find((x) => x.id === id); if (!t) return;
+    const others = U.topics.filter((x) => x.id !== id), n = U.notes.filter((x) => x.topic === id).length;
+    openModal(`${mHead("Edit topic", n + " note" + (n === 1 ? "" : "s") + " in this topic.")}
+      <form id="mfEditTopic" class="mform" data-id="${esc(id)}">
+        <label>Name<input name="name" maxlength="40" required value="${esc(t.label)}" autocomplete="off"></label>
+        <label>About <small>optional</small><input name="desc" maxlength="300" value="${esc(t.desc || "")}" autocomplete="off"></label>
+        <div class="swatches" role="radiogroup" aria-label="Colour">${COLORS.map((c) => `<label><input type="radio" name="color" value="${c}" ${c === t.color ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>
+        <div class="mf"><button type="button" class="gcbtn danger" data-act="del-topic" data-id="${esc(id)}">Delete topic</button><span class="aflex"></span><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Save</button></div>
+      </form>
+      ${others.length ? `<div class="lib-sec"><h4>Merge into another topic</h4><div class="gcrow"><select id="mergeTo">${others.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("")}</select><button class="gcbtn" data-act="merge-topic" data-id="${esc(id)}">Move all notes there</button></div></div>` : ""}
+      <div class="lib-sec"><button class="gcbtn" data-act="dup-topic" data-id="${esc(id)}">Duplicate this topic</button></div>`, "wide");
+  }
+  function mergeTopic(from, to) {
+    const a = U.topics.find((x) => x.id === from), b = U.topics.find((x) => x.id === to); if (!a || !b || a === b) return;
+    pushRestorePoint("Before merging topic " + a.label); checkpoint("merge topics");
+    const now = Date.now(), ids = new Set(U.notes.filter((x) => x.topic === from).map((x) => x.id));
+    U.notes.forEach((x) => { if (x.topic === from) { x.topic = to; x.updated = now; } });
+    tomb("t:" + from); U.topics = U.topics.filter((x) => x.id !== from); b.updated = now;
+    U.cols.forEach((c) => { c.topics = [...new Set(c.topics.map((x) => (x === "u:" + from ? "u:" + to : x)))]; c.t = now; }); U.cols = U.cols.filter((c) => c.topics.length > 1);
+    if (S.scope === "u:" + from) S.scope = "u:" + to;
+    closeModal(); afterDataChange({ scope: S.scope }); toast(`Moved ${ids.size} note${ids.size === 1 ? "" : "s"} into ${b.label}.`, 9000, true);
+  }
+  function dupTopic(id) {
+    const a = U.topics.find((x) => x.id === id); if (!a) return;
+    checkpoint("duplicate topic"); const t = ensureTopic(a.label + " copy"); t.color = a.color; t.desc = a.desc; t.auto = false;
+    const now = Date.now(); const map = new Map();
+    for (const x of U.notes.filter((x) => x.topic === id)) { const c = { ...x, id: newId("n"), topic: t.id, created: now, updated: now }; delete c.p; map.set(x.id, c.id); U.notes.push(c); }
+    closeModal(); afterDataChange({ scope: "u:" + t.id }); toast(`Copied ${map.size} note${map.size === 1 ? "" : "s"} into “${t.label}”.`, 9000, true);
+  }
   async function submitTopic(f) {
     const name = f.name.value.trim(); if (!name) return;
     const btn = f.querySelector("[type=submit]"); btn.disabled = true; btn.textContent = "Creating…";
     const color = f.querySelector("input[name=color]:checked")?.value || COLORS[0];
-    const t = ensureTopic(name); t.color = color; t.auto = false; if (f.desc.value.trim()) t.desc = f.desc.value.trim().slice(0, 300);
+    checkpoint("create topic"); const t = ensureTopic(name); t.color = color; t.auto = false; if (f.desc.value.trim()) t.desc = f.desc.value.trim().slice(0, 300);
     let notes = textToNotes(name, f.paste.value), merged = 0;
     const r = await readFiles([...(f.files.files || [])]);
     notes.push(...r.notes);
@@ -1617,6 +1676,7 @@ export function mount(root, opts) {
       </form>`, "wide");
   }
   function saveNote(f) {
+    checkpoint(ED.id ? "edit note" : ED.spark ? "save idea" : "add note");
     let topic = f.topic.value; if (topic === "__ideas") topic = ensureTopic("New ideas", true).id;
     const title = f.title.value.trim() || "Untitled", text = f.text.value, now = Date.now();
     let note = ED.id ? U.notes.find((n) => n.id === ED.id) : null;
@@ -1651,7 +1711,7 @@ export function mount(root, opts) {
   }
   const platformActions = (n) => {
     if (n.k === "core") return "";
-    if (n.k === "hub" && n.user) return `<div class="actions"><button class="gcbtn primary" data-act="new-note" data-topic="${esc(n.hubOf)}">+ Note here</button><button class="gcbtn" data-act="import-into" data-id="${esc(n.hubOf)}">Paste or upload text</button></div>`;
+    if (n.k === "hub" && n.user) return `<div class="actions"><button class="gcbtn primary" data-act="new-note" data-topic="${esc(n.hubOf)}">+ Note here</button><button class="gcbtn" data-act="import-into" data-id="${esc(n.hubOf)}">Paste or upload text</button><button class="gcbtn ghost" data-act="edit-topic" data-id="${esc(n.hubOf)}">Edit topic</button></div>`;
     if (n.k === "hub") return "";
     return `<div class="actions plat"><button class="gcbtn" data-act="relate" data-id="${esc(n.id)}">✦ Find related in other topics</button><button class="gcbtn ghost" data-act="note-about" data-id="${esc(n.id)}">+ Note about this</button></div>`;
   };
@@ -1661,7 +1721,7 @@ export function mount(root, opts) {
     openModal(`${mHead("Library", "Your topics, combined views and backup.")}
       <p class="lib-st" data-s="${userStore.kind}">${kindTxt}</p>
       ${cb.cloud ? `<div class="lib-sec cloud"><h4>Google Drive</h4><p class="lib-cl" data-s="${CL.state}">${{ off: "Not connected. Connect to keep everything in your own Google Drive and use it on every device.", syncing: "Syncing…", synced: "Synced " + new Date(CL.at).toLocaleTimeString() + ". Changes are uploaded automatically while this page is open.", error: "Sync failed: " + esc(CL.err) }[CL.state] || ""}</p><div class="gcrow wrap"><button class="gcbtn primary" data-act="cloud-sync" ${CL.busy ? "disabled" : ""}>${cloudOn() ? "Sync now" : "Connect Google Drive"}</button></div><p class="msub">Stored privately in this app\u2019s hidden folder in the Google account you choose at sign-in. Only this app can read it. Edits from two devices are merged, and a deletion is never undone by an older copy.</p></div>` : ""}
-      <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.map((t) => `<div class="lib-row"><i class="tdot" style="--tc:${t.color}"></i><b>${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="rename-topic" data-id="${esc(t.id)}">Rename</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
+      <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.map((t) => `<div class="lib-row"><i class="tdot" style="--tc:${t.color}"></i><b>${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="edit-topic" data-id="${esc(t.id)}">Edit</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
       <div class="lib-sec"><h4>Combined views</h4>${U.cols.length ? U.cols.map((c) => `<div class="lib-row"><b>${esc(c.label)}</b><small>${c.topics.map((x) => esc(topicInfo(x)?.label ?? x)).join(" + ")}</small><span class="aflex"></span><button class="gcbtn ghost danger" data-act="del-col" data-id="${esc(c.id)}">Delete</button></div>`).join("") : '<p class="msub">A combined view shows several topics in one tab, side by side, so you can look for relations.</p>'}<button class="gcbtn" data-act="combine">+ Combine topics</button></div>
       <div class="lib-sec"><h4>Restore points</h4><p class="sub">Automatic earlier copies, made at the start of a session and before risky changes. Ctrl+Z also undoes your last change.</p>${RP.length ? RP.map((p, i) => `<div class="lib-row"><b>${esc(p.label)}</b><small>${new Date(p.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${p.state.notes?.length ?? 0} notes · ${p.state.bridges?.length ?? 0} links</small><span class="aflex"></span><button class="gcbtn ghost" data-act="rp-restore" data-i="${i}">Go back to this</button></div>`).join("") : '<p class="sub">None yet.</p>'}</div>
       <div class="lib-sec"><h4>Backup</h4><div class="gcrow"><button class="gcbtn primary" data-act="export">Download backup</button><label class="gcbtn filebtn">Restore or merge a backup<input type="file" id="libRestore" accept=".json,application/json" hidden></label></div><p class="msub">A backup is one small file with all your topics, notes and connections. Restoring never overwrites what you already have.</p></div>`, "wide");
@@ -1678,8 +1738,9 @@ export function mount(root, opts) {
       <div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Create combined view</button></div></form>`);
   }
   // ---- connections: find similar ideas, find contradictions, or link two ideas yourself
-  const CN = { mode: "similar", topics: new Set(), only: null, res: null, busy: false, ai: "", aiBusy: false, link: { a: null, b: null, rel: "SIMILAR", note: "" } };
+  const CN = { mode: "compare", cmp: null, cmpBusy: false, topics: new Set(), only: null, res: null, busy: false, ai: "", aiBusy: false, link: { a: null, b: null, rel: "SIMILAR", note: "" } };
   const MODE = {
+    compare: { word: "comparison", rel: "RELATED", intro: "Pick two or more topics (or none for all of them). See what they share, what is unique to each, and where they agree or clash." },
     similar: { word: "similar ideas", rel: "SIMILAR", accept: "Connect as similar", no: "Not related", intro: "Finds ideas in different topics that say the same thing, or something close to it." },
     contradict: { word: "contradictions", rel: "CONTRADICTS", accept: "Mark as contradiction", no: "Not a contradiction", intro: "Finds ideas that cover the same ground but lean opposite ways. Offline results are candidates; ask the AI to judge them." },
   };
@@ -1765,20 +1826,90 @@ export function mount(root, opts) {
     if (mode === "link") {
       const side = (k) => { const id = CN.link[k]; return id && raw.has(id) ? `<div class="ln-pick">${chip(id)}<button class="gcbtn ghost" data-lclear="${k}" aria-label="Change">✕</button></div>` : `<div class="ln-find"><input data-lq="${k}" placeholder="${k === "a" ? "First idea…" : "Second idea…"} (type to search)" autocomplete="off" aria-label="${k === "a" ? "First idea" : "Second idea"}"><div class="ln-res" id="lres-${k}"></div></div>`; };
       body = `<div class="ln">${side("a")}<div class="ln-rel"><select id="lnRel" aria-label="Relation">${[["SIMILAR", "is similar to"], ["CONTRADICTS", "contradicts"], ["SUPPORTS", "supports"], ["RELATED", "is related to"]].map(([v, l]) => `<option value="${v}" ${CN.link.rel === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>${side("b")}<input id="lnNote" maxlength="200" placeholder="Why? (optional note)" value="${esc(CN.link.note)}" aria-label="Note"><div class="gcrow"><button class="gcbtn primary" id="lnGo" ${CN.link.a && CN.link.b ? "" : "disabled"}>Link these ideas</button></div></div><p class="sub">You can also type in Ask: “link Samsara with Rock cycle” or “Karma contradicts Fatalism”.</p>`;
+    } else if (mode === "compare") {
+      body = compareBody();
     } else {
       const hint = sel.length === 0 ? "Comparing all topics with each other." : sel.length === 1 ? `Comparing “${esc(topicInfo(sel[0])?.label)}” with every other topic.` : `Comparing ${sel.length} topics with each other.`;
       const cards = CN.busy ? '<p class="sub">Looking…</p>' : CN.res ? (CN.res.length ? CN.res.map((r, i) => `<div class="cn-card ${r.ai?.verdict === "unrelated" ? "dim" : ""}" data-i="${i}"><div class="cn-pair">${chip(r.a)}<span class="cn-x">${mode === "contradict" ? "⇄" : "↔"}</span>${chip(r.b)}</div>${r.ai ? `<p class="cn-ai" data-v="${r.ai.verdict}"><b>${VL[r.ai.verdict] ?? "AI"}</b> ${esc(r.ai.why)}</p>` : ""}<p class="cn-why">${esc(why(r.why))}</p><div class="gcrow"><button class="gcbtn primary" data-cn="accept">${M.accept}</button><button class="gcbtn" data-cn="spark">✦ Spark an idea</button><button class="gcbtn ghost" data-cn="no">${M.no}</button></div></div>`).join("") : `<p class="sub">Nothing found for this choice. ${mode === "contradict" ? "Offline matching needs wording like “not”, “rejects” or opposite terms; the AI search can read meaning." : "Add more notes, share #tags, or try the AI search."}</p>`) : "";
       body = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnall>All topics</button>' : ""}</div><p class="sub tight">${hint}</p>
         <div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${CN.res ? "Search again" : "Find " + M.word}</button><button class="gcbtn" id="cnAI" ${CN.aiBusy ? "disabled" : ""} title="${aiOk() ? "The AI reads the notes and proposes pairs" : "Connect an AI in Settings to use this"}">${CN.aiBusy ? "AI is reading…" : "✦ Ask AI to find"}</button>${CN.only ? '<button class="gcbtn ghost" id="cnAll">All nodes</button>' : ""}</div>
-        ${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
+        ${CN.res?.length && !CN.aiBusy ? '<button class="gcbtn" id="cnSaveRes" title="Creates a new topic from these results">💾 Save as new cluster</button>' : ""}${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
         <div class="cn-list" aria-live="polite">${cards}</div>`;
     }
     const REL_L = { SIMILAR: "≈", CONTRADICTS: "⇄", SUPPORTS: "→", RELATED: "↔" };
     const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b));
-    pop.innerHTML = `<h3>Connections</h3><div class="seg wide cn-modes" role="tablist">${[["similar", "Similar ideas"], ["contradict", "Contradictions"], ["link", "Link ideas"]].map(([k, l]) => `<button data-cnmode="${k}" class="${mode === k ? "on" : ""}" role="tab" aria-selected="${mode === k}">${l}</button>`).join("")}</div>
+    pop.innerHTML = `<h3>Connections</h3><div class="seg wide cn-modes" role="tablist">${[["compare", "Compare"], ["similar", "Similar"], ["contradict", "Contradictions"], ["link", "Link"]].map(([k, l]) => `<button data-cnmode="${k}" class="${mode === k ? "on" : ""}" role="tab" aria-selected="${mode === k}">${l}</button>`).join("")}</div>
       <p class="sub">${mode === "link" ? "Tell the app that two ideas are related, similar or opposed. It draws the link between them, in any topics." : CN.only && raw.has(CN.only) ? `Looking at <b>${esc(raw.get(CN.only).l)}</b> against other topics. ${M.intro}` : M.intro}</p>${body}
       ${mine.length ? `<details class="cn-mine"><summary>Your connections · ${mine.length}</summary>${Object.entries(mine.reduce((m, b) => { if (b.auto && b.batch) (m[b.batch] ||= []).push(b); return m; }, {})).map(([id, l]) => `<div class="cn-row batch"><span>⚡ Auto-linked ${l.length} · ${new Date(l[0].t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span><button class="gcbtn ghost" data-cn-undobatch="${esc(id)}">Undo these</button></div>`).join("")}${mine.map((b, i) => `<div class="cn-row"><span>${esc(clip(raw.get(b.a).l, 22))} <b class="rl" data-r="${b.rel || "RELATED"}">${REL_L[b.rel || "RELATED"]}</b> ${esc(clip(raw.get(b.b).l, 22))}</span><button class="gcbtn ghost" data-cn-del="${i}" title="Remove this connection">Remove</button></div>`).join("")}</details>` : ""}`;
   }
+  // ── compare topics: shared ideas, what is unique to each, agreements and clashes ─────────────────────────
+  function runCompare() {
+    CN.cmpBusy = true; CN.cmp = null; renderConn();
+    setTimeout(() => {
+      try {
+        const sel = topicSel(), items = connItems(), have = new Set(items.map((i) => i.topic));
+        let ids = sel.length >= 2 ? sel : topicsAll().map((t) => t.id).filter((t) => have.has(t));
+        const focus = sel.length === 1 ? sel[0] : null;
+        const surf = new Map(), df = new Map(ids.map((t) => [t, new Map()])), cnt = new Map(ids.map((t) => [t, 0]));
+        for (const it of items) { if (!df.has(it.topic)) continue; cnt.set(it.topic, cnt.get(it.topic) + 1); for (const w of new Set(tokens(it.label + " " + it.text, surf))) df.get(it.topic).set(w, (df.get(it.topic).get(w) || 0) + 1); }
+        const shared = [], uniq = {};
+        const all = new Set(); df.forEach((m) => m.forEach((_, w) => all.add(w)));
+        for (const w of all) { const per = ids.map((t) => df.get(t).get(w) || 0), present = per.filter((x) => x > 0).length; if (present >= 2 && Math.min(...per.filter((x) => x > 0)) >= 2) shared.push([w, present, per.reduce((a, b) => a + b, 0)]); }
+        shared.sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+        for (const t of ids) uniq[t] = [...df.get(t)].filter(([w, c]) => c >= 3 && !ids.some((o) => o !== t && df.get(o).has(w))).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w]) => surf.get(w) || w);
+        const { items: it2, links, skip } = connInputs(), sc = { topics: ids };
+        const sim = suggest(it2, links, { topics: ids, skip: new Set(), limit: 60, only: focus || undefined });
+        const known = new Set(["CONTRADICTS", "CRITIQUES", "REJECTS", "CONTRASTS"]);
+        const con = contradictions(it2, edges.filter((e) => known.has(e.rel)).map((e) => [e.s, e.t]), { topics: ids, skip: new Set(), limit: 40, only: focus || undefined });
+        const keepSim = sim.filter((r) => { const A = raw.get(r.a), B = raw.get(r.b); return !(BI.has(topicOf(A)) && BI.has(topicOf(B))) || r.why.title || r.why.words.length >= 3 || r.why.tags.length || r.why.via.length; });
+        CN.cmp = { topics: ids.map((t) => ({ id: t, label: topicInfo(t)?.label || t, n: cnt.get(t) })), shared: shared.slice(0, 14).map(([w]) => surf.get(w) || w), uniq, sim: keepSim, con };
+      } catch (e) { toast("Could not compare: " + String(e?.message || e).slice(0, 80)); }
+      CN.cmpBusy = false; if (S.tool === "conn") renderConn();
+    }, 30);
+  }
+  function compareBody() {
+    const tops = topicsAll(), sel = topicSel(), c = CN.cmp;
+    const chips = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnclear="1">Clear</button>' : ""}</div>`;
+    const hint = sel.length === 0 ? "No topic ticked: comparing all topics with each other." : sel.length === 1 ? `Comparing “${esc(topicInfo(sel[0])?.label)}” with every other topic.` : `Comparing ${sel.length} topics with each other.`;
+    let out = `${chips}<p class="sub">${hint}</p><div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${c ? "Compare again" : "Compare"}</button></div>`;
+    if (CN.cmpBusy) return out + '<p class="sub">Comparing…</p>';
+    if (!c) return out;
+    const nm = (t) => esc(c.topics.find((x) => x.id === t)?.label || t);
+    out += `<div class="cmp"><div class="cmp-top">${c.topics.map((t) => `<span class="cmp-t"><b>${esc(t.label)}</b> ${t.n} ideas</span>`).join("")}</div>
+      <h4>Shared ground</h4>${c.shared.length ? `<div class="cmp-w">${c.shared.map((w) => `<span>${esc(w)}</span>`).join("")}</div>` : '<p class="sub">No common vocabulary yet. Add more notes, or use Link to connect ideas yourself.</p>'}
+      <h4>Only in one topic</h4>${c.topics.filter((t) => c.uniq[t.id]?.length).map((t) => `<p class="cmp-u"><b>${esc(t.label)}</b>: ${c.uniq[t.id].map(esc).join(", ")}</p>`).join("") || '<p class="sub">Nothing distinctive found.</p>'}
+      <h4>Between them</h4><div class="cmp-b"><button class="gcbtn" data-cngo="similar" ${c.sim.length ? "" : "disabled"}>${c.sim.length} similar-idea candidate${c.sim.length === 1 ? "" : "s"} →</button><button class="gcbtn" data-cngo="contradict" ${c.con.length ? "" : "disabled"}>${c.con.length} possible contradiction${c.con.length === 1 ? "" : "s"} →</button></div>
+      ${c.sim.length || c.con.length ? '<div class="gcrow wrap"><button class="gcbtn primary" id="cnSaveCmp" title="Creates a new topic holding this comparison and the strongest pairs, linked to the originals">💾 Save findings as a new cluster</button></div>' : ""}</div>`;
+    return out;
+  }
+  // a finding becomes a topic of its own: a summary, one idea per pair, and the links drawn between the originals
+  function makeFindings(title, summary, pairs) {
+    checkpoint("save findings as a cluster");
+    const t = ensureTopic(title.slice(0, 40)); t.auto = false; t.color = COLORS[U.topics.length % COLORS.length]; t.desc = "Saved from Compare, " + new Date().toLocaleDateString();
+    const now = Date.now(); let n = 0;
+    if (summary) U.notes.push({ id: newId("n"), topic: t.id, title: "Summary", text: summary, created: now, updated: now });
+    for (const r of pairs.slice(0, 40)) {
+      const A = raw.get(r.a), B = raw.get(r.b); if (!A || !B) continue;
+      const dr = ideaDraft({ label: A.l }, { label: B.l }, r.why, r.kind === "CONTRADICTS" ? "contradict" : "similar");
+      U.notes.push({ id: newId("n"), topic: t.id, title: dr.title, text: dr.text, created: now, updated: now, spark: true, from: [r.a, r.b] }); n++;
+      addBridge(r.a, r.b, r.kind, r.ai?.why || "");
+    }
+    afterDataChange({ scope: "u:" + t.id }); S.tool && showPop(S.tool);
+    toast(`Saved as the topic “${t.label}” with ${n} linked idea${n === 1 ? "" : "s"}.`, 12000, true);
+  }
+  function saveCompare() {
+    const c = CN.cmp; if (!c) return;
+    const names = c.topics.map((t) => t.label), title = "Findings: " + (names.length > 3 ? names.slice(0, 3).join(" × ") + "…" : names.join(" × "));
+    const lines = [`Compared ${names.join(", ")}.`, c.shared.length ? `Shared ground: ${c.shared.join(", ")}.` : "", ...c.topics.filter((t) => c.uniq[t.id]?.length).map((t) => `Only in ${t.label}: ${c.uniq[t.id].join(", ")}.`), `${c.sim.length} similar-idea candidates and ${c.con.length} possible contradictions were found; the strongest are saved here as linked ideas.`].filter(Boolean);
+    const pairs = [...c.sim.filter(strongSim).slice(0, 12).map((r) => ({ ...r, kind: "SIMILAR" })), ...c.con.slice(0, 8).map((r) => ({ ...r, kind: "CONTRADICTS" }))];
+    makeFindings(title, lines.join("\n\n"), pairs);
+  }
+  function saveResults() {
+    if (!CN.res?.length) return;
+    const kind = MODE[CN.mode].rel, names = [...new Set(CN.res.slice(0, 25).flatMap((r) => [r.a, r.b]).map((id) => topicInfo(topicOf(raw.get(id)))?.label).filter(Boolean))];
+    makeFindings((CN.mode === "contradict" ? "Contradictions: " : "Similar: ") + names.slice(0, 3).join(" × "), "", CN.res.map((r) => ({ ...r, kind })));
+  }
+  const strongSim = (r) => !!(r.why.title || r.why.tags.length >= 1 || (r.why.words.length >= 3 && r.score >= 0.25) || r.why.via.length);
   const strongMatch = (r) => CN.mode === "contradict" ? (r.why.cues?.length >= 1 && r.why.words.length >= 3) : !!(r.why.title || r.why.tags.length >= 1 || (r.why.words.length >= 3 && r.score >= 0.25) || r.why.via.length);
   async function autoLink() {
     if (!CN.res?.length || CN.aiBusy) return;
@@ -1821,17 +1952,17 @@ export function mount(root, opts) {
   strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); renderEmpty(); } });
   const actions = {
     "new-topic": () => newTopicModal(), "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
-    "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope); CN.topics = new Set(k ? [S.scope] : []); CN.only = null; CN.res = null; CN.ai = ""; showPop("conn"); },
+    "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope), c = colOf(S.scope); CN.topics = new Set(k ? [S.scope] : c ? c.topics : []); CN.only = null; CN.res = null; CN.ai = ""; CN.cmp = null; CN.mode = "compare"; showPop("conn"); if (CN.topics.size >= 2) runCompare(); },
     "new-note": (b) => { const t = b?.dataset.topic; noteModal(t ? { topic: t } : {}); },
     "note-about": (b) => { const n = raw.get(b.dataset.id); if (!n) return; noteModal({ title: "", text: `About [[${n.l}]]\n\n` }); },
     "create-note": (b) => { closeModal(); noteModal({ title: b.dataset.title, topic: b.dataset.topic }); },
     "edit-note": (b) => { const n = raw.get(b.dataset.id); if (n?.nid) noteModal({ id: n.nid }); },
     "relate": (b) => { CN.only = b.dataset.id; CN.topics = new Set(); CN.res = null; CN.ai = ""; if (CN.mode === "link") CN.mode = "similar"; if (S.tool !== "conn") showPop("conn"); else runConn(); },
     "import-into": (b) => { closeModal(); const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; openModal(`${mHead("Add text to " + esc(t.label), "Paste text or upload files. They become small notes in this topic.")}<form id="mfImport" class="mform" data-topic="${esc(t.id)}"><label>Paste text<textarea name="paste" rows="7" autofocus></textarea></label><label>Or upload files <small>.txt .md</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label><div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Add to topic</button></div></form>`, "wide"); },
-    "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
+    "merge-topic": (b) => mergeTopic(b.dataset.id, $("#mergeTo")?.value), "dup-topic": (b) => dupTopic(b.dataset.id), "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { checkpoint("rename topic"); t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
     "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. You can undo it straight after, or from Library › Restore points.`)) return; pushRestorePoint("Before deleting topic " + t.label); checkpoint("delete topic"); const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
     "del-col": (b) => { checkpoint("remove combined view"); tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
-    "cloud-sync": () => cloudSync(true),
+    "cloud-sync": () => cloudSync(true), "undo": () => undo(), "redo": () => redo(), "edit-topic": (b) => editTopicModal(b.dataset.id), "toggle-split": () => { S.split = !S.split; islandOf.clear(); scopeChanged(); apply({ frame: true }); setTimeout(() => fg.cameraPosition(home(), { x: 0, y: 0, z: 0 }, 700), 150); },
     "export": () => { exportBackup(); toast("Backup downloaded."); },
   };
   root.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (!b || !root.contains(b)) return; const f = actions[b.dataset.act]; if (f) { e.preventDefault(); f(b); } });
@@ -1857,6 +1988,7 @@ export function mount(root, opts) {
     e.preventDefault();
     const f = e.target;
     if (f.id === "mfTopic") return submitTopic(f);
+    if (f.id === "mfEditTopic") { const t = U.topics.find((x) => x.id === f.dataset.id); const nm = f.name.value.trim(); if (t && nm) { checkpoint("edit topic"); t.label = nm.slice(0, 40); t.desc = f.desc.value.trim().slice(0, 300); t.color = f.querySelector("input[name=color]:checked")?.value || t.color; t.updated = Date.now(); closeModal(); afterDataChange({ scope: S.scope }); toast("Saved.", 5000, true); } return; }
     if (f.id === "mfNote") return saveNote(f);
     if (f.id === "mfCombine") {
       const ts = [...f.querySelectorAll("input[name=t]:checked")].map((x) => x.value);
@@ -1873,7 +2005,7 @@ export function mount(root, opts) {
   const addBridge = (a, b, rel, note = "") => { if (!a || !b || a === b || U.bridges.some((x) => x.rel === rel && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))) return false; U.bridges.push({ a, b, rel, note: String(note).slice(0, 200), t: Date.now() }); return true; };
   pop.addEventListener("change", (e) => {
     const t = e.target;
-    if (t.dataset?.cntopic) { t.checked ? CN.topics.add(t.dataset.cntopic) : CN.topics.delete(t.dataset.cntopic); CN.res = null; CN.ai = ""; renderConn(); }
+    if (t.dataset?.cntopic) { t.checked ? CN.topics.add(t.dataset.cntopic) : CN.topics.delete(t.dataset.cntopic); CN.res = null; CN.cmp = null; CN.ai = ""; renderConn(); }
     if (t.id === "lnRel") CN.link.rel = t.value;
   });
   pop.addEventListener("input", (e) => {
@@ -1887,9 +2019,12 @@ export function mount(root, opts) {
   });
   pop.addEventListener("click", (e) => {
     if (S.tool !== "conn") return;
-    const md = e.target.closest("[data-cnmode]"); if (md) { CN.mode = md.dataset.cnmode; CN.res = null; CN.ai = ""; renderConn(); if (CN.mode !== "link") runConn(); return; }
+    const md = e.target.closest("[data-cnmode]"); if (md) { CN.mode = md.dataset.cnmode; CN.res = null; CN.ai = ""; renderConn(); if (CN.mode === "compare") runCompare(); else if (CN.mode !== "link") runConn(); return; }
     if (e.target.closest("[data-cnall]")) { CN.topics.clear(); CN.res = null; renderConn(); return; }
-    if (e.target.closest("#cnFind")) { runConn(); return; }
+    if (e.target.closest("#cnFind")) { if (CN.mode === "compare") runCompare(); else runConn(); return; }
+    const go = e.target.closest("[data-cngo]"); if (go) { CN.mode = go.dataset.cngo; CN.res = null; CN.ai = ""; renderConn(); runConn(); return; }
+    if (e.target.closest("#cnSaveCmp")) { saveCompare(); return; }
+    if (e.target.closest("#cnSaveRes")) { saveResults(); return; }
     if (e.target.closest("#cnAI")) { aiDiscover(); return; }
     if (e.target.closest("#cnJudge")) { aiJudge(); return; }
     if (e.target.closest("#cnAuto")) { autoLink(); return; }
@@ -1930,7 +2065,9 @@ export function mount(root, opts) {
     if (e.target.id === "gcSpinChk") setSpin(e.target.checked);
   });
   const onKey = (e) => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "z" && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "") && !e.target?.isContentEditable) { if (UNDO.length) { e.preventDefault(); undo(); } }
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "") || e.target?.isContentEditable, mod = (e.ctrlKey || e.metaKey) && !e.altKey, kz = e.key.toLowerCase();
+    if (mod && !typing && kz === "z" && !e.shiftKey) { if (UNDO.length) { e.preventDefault(); undo(); } }
+    else if (mod && !typing && ((kz === "z" && e.shiftKey) || kz === "y")) { if (REDO.length) { e.preventDefault(); redo(); } }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
     else if (e.key === "Escape" && !modal.hidden) closeModal();
     else if (e.key === "Escape" && !$("#gcHelpM").hidden) showHelp(false);
