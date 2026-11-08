@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { tokens, slug } from "../src/text.js";
 import { parseNote, plain } from "../src/wikilinks.js";
 import { suggest, contradictions, ideaDraft } from "../src/relations.js";
-import { normalize, buildGraph, textToNotes, mergeState, emptyState } from "../src/userdata.js";
+import { normalize, buildGraph, textToNotes, mergeState, emptyState, sameState } from "../src/userdata.js";
 let n = 0; const t = (name, f) => { try { f(); n++; console.log("ok  ", name); } catch (e) { console.error("FAIL", name, "\n", e.message); process.exitCode = 1; } };
 
 t("tokens: english stems and stopwords", () => { const k = tokens("The Rocks are sedimentary and metamorphic"); assert.ok(k.includes("rock") && !k.includes("the")); });
@@ -68,5 +68,18 @@ t("userdata keeps bridge relation types", () => {
   const s = normalize({ topics: [{ id: "g", label: "G" }], notes: [{ id: "1", topic: "g", title: "A" }, { id: "2", topic: "g", title: "B" }], bridges: [{ a: "u:1", b: "u:2", rel: "CONTRADICTS" }, { a: "u:2", b: "u:1", rel: "bogus" }] });
   assert.equal(s.bridges[0].rel, "CONTRADICTS"); assert.equal(s.bridges[1].rel, "RELATED");
   const g = buildGraph(s, new Set(), new Map()); assert.ok(g.edges.some((e) => e[2] === "CONTRADICTS"));
+});
+t("cloud merge: newer edit wins, deletions propagate, restore can revive", () => {
+  const base = normalize({ topics: [{ id: "g", label: "G", updated: 1 }], notes: [{ id: "1", topic: "g", title: "old", updated: 10 }, { id: "2", topic: "g", title: "keep", updated: 10 }] });
+  const A = JSON.parse(JSON.stringify(base)); A.notes[0].title = "edited on A"; A.notes[0].updated = 50;
+  const B = JSON.parse(JSON.stringify(base)); B.notes = B.notes.filter((n) => n.id !== "2"); B.gone["n:2"] = 60; B.notes.push({ id: "3", topic: "g", title: "new on B", updated: 70, created: 70 });
+  const m = mergeState(A, B).state;
+  assert.equal(m.notes.find((n) => n.id === "1").title, "edited on A"); assert.ok(!m.notes.find((n) => n.id === "2")); assert.ok(m.notes.find((n) => n.id === "3"));
+  assert.ok(sameState(m, mergeState(B, A).state), "merge is symmetric");
+  assert.ok(sameState(m, mergeState(m, A).state) && sameState(m, mergeState(m, B).state), "merge is idempotent");
+  const newerEdit = normalize({ topics: base.topics, notes: [{ id: "2", topic: "g", title: "edited after delete", updated: 90 }] });
+  assert.ok(mergeState(B, newerEdit).state.notes.find((n) => n.id === "2"), "edit after deletion keeps the note");
+  assert.ok(!mergeState(B, A).state.notes.find((n) => n.id === "2"), "older copy cannot undo a deletion");
+  assert.ok(mergeState(B, A, { revive: true }).state.notes.find((n) => n.id === "2"), "manual restore revives");
 });
 console.log(n + " tests passed");

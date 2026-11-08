@@ -5,7 +5,7 @@ import { parseNote, plain } from "./wikilinks.js";
 import { clip, norm, slug } from "./text.js";
 
 export const SCHEMA = 1;
-export const emptyState = () => ({ v: SCHEMA, topics: [], notes: [], bridges: [], dismissed: [], cols: [] });
+export const emptyState = () => ({ v: SCHEMA, topics: [], notes: [], bridges: [], dismissed: [], cols: [], gone: {} });
 export const COLORS = ["#2a78d6", "#1baf7a", "#c2417a", "#eb6834", "#6250d6", "#0e8fa3", "#b08400", "#7a3fb0", "#b3541e", "#1f7a5a"];
 const str = (v, n) => (typeof v === "string" ? v : v == null ? "" : String(v)).slice(0, n);
 const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -22,7 +22,7 @@ export function normalize(raw) {
     if (!id || id === "eng" || id === "phil" || seenT.has(id)) id = slug(id + "-" + (seenT.size + 1));
     if (seenT.has(id)) continue;
     seenT.add(id);
-    s.topics.push({ id, label: str(t.label, 40).trim() || id, color: /^#[0-9a-f]{6}$/i.test(t.color) ? t.color : COLORS[s.topics.length % COLORS.length], desc: str(t.desc, 300), created: +t.created || Date.now(), auto: !!t.auto });
+    s.topics.push({ id, label: str(t.label, 40).trim() || id, color: /^#[0-9a-f]{6}$/i.test(t.color) ? t.color : COLORS[s.topics.length % COLORS.length], desc: str(t.desc, 300), created: +t.created || Date.now(), updated: +t.updated || +t.created || Date.now(), auto: !!t.auto });
   }
   const seenN = new Set();
   for (const n of Array.isArray(raw.notes) ? raw.notes : []) {
@@ -41,7 +41,7 @@ export function normalize(raw) {
     if (Array.isArray(n.p) && n.p.length === 3 && n.p.every(Number.isFinite)) note.p = n.p;
     s.notes.push(note);
   }
-  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 200) });
+  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 200), t: +b.t || 0 });
   s.dismissed = [...new Set((Array.isArray(raw.dismissed) ? raw.dismissed : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 170)))].slice(0, 5000);
   const colIds = new Set();
   for (const c of Array.isArray(raw.cols) ? raw.cols : []) {
@@ -49,8 +49,12 @@ export function normalize(raw) {
     const id = slug(str(c.id, 40) || str(c.label, 40));
     if (colIds.has(id)) continue; colIds.add(id);
     const topics = [...new Set((Array.isArray(c.topics) ? c.topics : []).map((x) => str(x, 40)).filter(Boolean))].slice(0, 12);
-    if (topics.length) s.cols.push({ id, label: str(c.label, 40).trim() || "Combined", topics });
+    if (topics.length) s.cols.push({ id, label: str(c.label, 40).trim() || "Combined", topics, t: +c.t || 0 });
   }
+  // tombstones: what was deleted and when, so a deletion on one device is not undone by another device's copy
+  if (raw.gone && typeof raw.gone === "object") for (const [k, v] of Object.entries(raw.gone).slice(0, 20000)) if (typeof k === "string" && k.length <= 200 && Number.isFinite(+v)) s.gone[k] = +v;
+  const keys = Object.keys(s.gone);
+  if (keys.length > 5000) for (const k of keys.sort((x, y) => s.gone[y] - s.gone[x]).slice(5000)) delete s.gone[k];
   return s;
 }
 
@@ -145,17 +149,36 @@ export function textToNotes(name, text, { maxLen = 900 } = {}) {
   return out;
 }
 
-/** merge another state (backup file) into this one; ids that already exist are skipped, never overwritten */
-export function mergeState(cur, incoming) {
-  const inc = normalize(incoming), out = normalize(cur);
-  const tIds = new Set(out.topics.map((t) => t.id)), nIds = new Set(out.notes.map((n) => n.id));
-  let addedT = 0, addedN = 0;
-  for (const t of inc.topics) if (!tIds.has(t.id)) { out.topics.push(t); tIds.add(t.id); addedT++; }
-  for (const n of inc.notes) if (!nIds.has(n.id)) { out.notes.push(n); nIds.add(n.id); addedN++; }
-  const bk = new Set(out.bridges.map((b) => b.a + "|" + b.b + "|" + b.rel));
-  for (const b of inc.bridges) if (!bk.has(b.a + "|" + b.b + "|" + b.rel)) out.bridges.push(b);
-  out.dismissed = [...new Set([...out.dismissed, ...inc.dismissed])];
-  const cIds = new Set(out.cols.map((c) => c.id));
-  for (const c of inc.cols) if (!cIds.has(c.id)) out.cols.push(c);
-  return { state: normalize(out), addedT, addedN };
+/**
+ * Merge two states (a backup file, or the copy kept in Google Drive) into this one. Nothing is overwritten by guesswork:
+ * for the same note the newer edit wins, and a deletion wins only if it happened after the note's last edit.
+ * `revive: true` (restoring a backup by hand) brings back items from the file even if they were deleted here.
+ */
+export function mergeState(cur, incoming, { revive = false } = {}) {
+  const a = normalize(cur), b = normalize(incoming), out = emptyState();
+  const gone = { ...a.gone };
+  for (const [k, v] of Object.entries(b.gone)) gone[k] = Math.max(gone[k] ?? 0, v);
+  const dead = (key, t, fromIncoming) => (revive && fromIncoming ? false : (gone[key] ?? 0) >= t && gone[key] !== undefined);
+  const pick = (la, lb, idOf, stamp, key) => {
+    const m = new Map();
+    for (const x of la) m.set(idOf(x), { x, inc: false });
+    for (const y of lb) { const id = idOf(y), cur0 = m.get(id); if (!cur0) m.set(id, { x: y, inc: true }); else if (stamp(y) > stamp(cur0.x)) m.set(id, { x: y, inc: true, was: true }); }
+    const res = [];
+    for (const [id, { x, inc }] of m) { if (dead(key(id), stamp(x), inc)) continue; if (revive && inc) delete gone[key(id)]; res.push(x); }
+    return res;
+  };
+  const had = (list, idOf) => new Set(list.map(idOf));
+  out.topics = pick(a.topics, b.topics, (t) => t.id, (t) => t.updated || 0, (id) => "t:" + id);
+  out.notes = pick(a.notes, b.notes, (n) => n.id, (n) => n.updated || 0, (id) => "n:" + id);
+  const bid = (x) => x.a + "|" + x.b + "|" + x.rel;
+  out.bridges = pick(a.bridges, b.bridges, bid, (x) => x.t || 0, (id) => "b:" + id);
+  out.cols = pick(a.cols, b.cols, (c) => c.id, (c) => c.t || 0, (id) => "c:" + id);
+  out.dismissed = [...new Set([...a.dismissed, ...b.dismissed])];
+  out.gone = gone;
+  const before = had(a.topics, (t) => t.id), beforeN = had(a.notes, (n) => n.id);
+  const state = normalize(out);
+  return { state, addedT: state.topics.filter((t) => !before.has(t.id)).length, addedN: state.notes.filter((n) => !beforeN.has(n.id)).length };
 }
+
+/** true when two states hold the same things (used to skip pointless uploads) */
+export const sameState = (x, y) => JSON.stringify([x.topics, x.notes, x.bridges, x.cols, x.gone]) === JSON.stringify([y.topics, y.notes, y.bridges, y.cols, y.gone]);

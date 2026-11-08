@@ -10,7 +10,7 @@ import SpriteText from "three-spritetext";
 import { tokens, clip as tclip, norm, slug } from "./text.js";
 import { parseNote } from "./wikilinks.js";
 import { suggest, contradictions, ideaDraft } from "./relations.js";
-import { SCHEMA, emptyState, normalize, buildGraph, textToNotes, mergeState, newId, COLORS } from "./userdata.js";
+import { SCHEMA, emptyState, normalize, buildGraph, textToNotes, mergeState, sameState, newId, COLORS } from "./userdata.js";
 import { createStore } from "./store.js";
 
 const RING_R = 380;
@@ -234,7 +234,31 @@ export function mount(root, opts) {
     if (persist) saveUser();
   }
   let saveTimer = 0, saveState = "idle";
+  // ── Google Drive: the same data, kept in the person's own private app folder and merged safely ──────────────
+  const CL = { state: cb.cloud ? "off" : "none", at: 0, err: "", timer: 0, busy: false };
+  const cloudOn = () => !!(cb.cloud && cb.cloud.connected());
+  function scheduleCloud() { if (!cb.cloud || !cloudOn()) return; clearTimeout(CL.timer); CL.timer = setTimeout(() => cloudSync(false, true), 4000); }
+  async function cloudSync(interactive = false, uploadOnly = false) {
+    if (!cb.cloud || CL.busy) return;
+    CL.busy = true;
+    try {
+      if (!cloudOn()) { if (!interactive) { CL.state = "off"; return; } await cb.cloud.connect(); }
+      CL.state = "syncing"; chromeSave(); if (modalIsLibrary()) libraryModal();
+      let changed = false;
+      if (!uploadOnly) {
+        const remote = (await cb.cloud.load())?.state;
+        if (remote) { const m = mergeState(U, remote); if (!sameState(m.state, U)) { U = m.state; changed = true; } }
+      }
+      if (changed) { CL.busy = false; afterDataChange(); CL.busy = true; }
+      await cb.cloud.save(U);
+      CL.state = "synced"; CL.at = Date.now(); CL.err = "";
+      if (interactive) toast(changed ? "Google Drive synced. Changes from Drive were merged in." : "Google Drive is up to date.");
+    } catch (e) { CL.state = "error"; CL.err = String(e?.message || e).slice(0, 140); if (interactive) toast(CL.err); }
+    finally { CL.busy = false; chromeSave(); if (modalIsLibrary()) libraryModal(); }
+  }
+  const modalIsLibrary = () => !modal.hidden && !!modal.querySelector(".lib-st");
   function saveUser() {
+    scheduleCloud();
     saveState = "saving"; chromeSave();
     userStore.save(U).then(() => { saveState = userStore.kind === "memory" ? "unsafe" : "saved"; chromeSave(); }).catch(() => { saveState = "unsafe"; chromeSave(); });
   }
@@ -1441,7 +1465,8 @@ export function mount(root, opts) {
   function chromeSave() {
     const el = $("#gcSave"); if (!el) return;
     el.dataset.s = saveState;
-    el.parentElement.title = { idle: "Your topics and notes are kept in this browser", saving: "Saving…", saved: "Saved in this browser. Download a backup from Library now and then.", unsafe: "Could not save in this browser (private window or blocked storage). Download a backup from Library." }[saveState] || "";
+    const cl = CL.state === "synced" ? " Also saved in your Google Drive." : CL.state === "syncing" ? " Syncing with Google Drive…" : CL.state === "error" ? " Google Drive sync failed: " + CL.err : cb.cloud ? " Not synced to Google Drive yet (open Library)." : "";
+    el.parentElement.title = ({ idle: "Your topics and notes are kept in this browser", saving: "Saving…", saved: "Saved in this browser. Download a backup from Library now and then.", unsafe: "Could not save in this browser (private window or blocked storage). Download a backup from Library." }[saveState] || "") + cl;
   }
   const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; return c; };
   function renderTopics() {
@@ -1474,10 +1499,12 @@ export function mount(root, opts) {
     renderEmpty();
     if (S.tool === "conn") renderConn();
   }
+  const tomb = (key) => { U.gone[key] = Date.now(); };
+  const tombB = (b) => tomb("b:" + b.a + "|" + b.b + "|" + b.rel);
   const addNotes = (topicKey, list) => { const t0 = Date.now(); let c = 0; for (const x of list) { if (c >= 2500) break; U.notes.push({ id: newId("n"), topic: topicKey, title: String(x.title || "Untitled").slice(0, 120), text: String(x.text || "").slice(0, 20000), created: t0, updated: t0 }); c++; } return c; };
   const ensureTopic = (label, auto) => {
     let t = U.topics.find((x) => norm(x.label) === norm(label));
-    if (!t) { let id = slug(label), k = 1; while (U.topics.some((x) => x.id === id) || id === "eng" || id === "phil") id = slug(label) + "-" + ++k; t = { id, label, color: auto ? "#d4380d" : COLORS[U.topics.length % COLORS.length], desc: auto ? "Ideas that join two topics" : "", created: Date.now(), auto: !!auto }; U.topics.push(t); }
+    if (!t) { let id = slug(label), k = 1; while (U.topics.some((x) => x.id === id) || id === "eng" || id === "phil") id = slug(label) + "-" + ++k; t = { id, label, color: auto ? "#d4380d" : COLORS[U.topics.length % COLORS.length], desc: auto ? "Ideas that join two topics" : "", created: Date.now(), updated: Date.now(), auto: !!auto }; U.topics.push(t); }
     return t;
   };
   async function readFiles(files) {
@@ -1510,7 +1537,7 @@ export function mount(root, opts) {
     let notes = textToNotes(name, f.paste.value), merged = 0;
     const r = await readFiles([...(f.files.files || [])]);
     notes.push(...r.notes);
-    for (const b of r.backups) { const m = mergeState(U, b); U = m.state; merged += m.addedN; }
+    for (const b of r.backups) { const m = mergeState(U, b, { revive: true }); U = m.state; merged += m.addedN; }
     const c = addNotes(t.id, notes);
     closeModal(); afterDataChange({ scope: "u:" + t.id });
     toast(c || merged ? `Created ${t.label} with ${c + merged} note${c + merged === 1 ? "" : "s"}.` : `Created ${t.label}. Add your first note with + Note.`);
@@ -1546,7 +1573,7 @@ export function mount(root, opts) {
     else {
       note = { id: newId("n"), topic, title, text, created: now, updated: now }; if (ED.spark) { note.spark = true; note.from = ED.from; }
       U.notes.push(note);
-      if (ED.spark && ED.from?.length === 2 && !U.bridges.some((b) => (b.a === ED.from[0] && b.b === ED.from[1]) || (b.a === ED.from[1] && b.b === ED.from[0]))) U.bridges.push({ a: ED.from[0], b: ED.from[1], note: "from idea: " + title.slice(0, 60) });
+      if (ED.spark && ED.from?.length === 2 && !U.bridges.some((b) => (b.a === ED.from[0] && b.b === ED.from[1]) || (b.a === ED.from[1] && b.b === ED.from[0]))) U.bridges.push({ a: ED.from[0], b: ED.from[1], rel: "RELATED", note: "from idea: " + title.slice(0, 60), t: Date.now() });
     }
     closeModal();
     afterDataChange({ select: "u:" + note.id, scope: S.scope && !colOf(S.scope) && S.scope !== "u:" + topic ? "u:" + topic : undefined });
@@ -1554,6 +1581,7 @@ export function mount(root, opts) {
   }
   function deleteNote() {
     const n = U.notes.find((x) => x.id === ED.id); if (!n || !confirm(`Delete “${n.title}”? This cannot be undone.`)) return;
+    tomb("n:" + n.id); U.bridges.filter((b) => b.a === "u:" + n.id || b.b === "u:" + n.id).forEach(tombB);
     U.notes = U.notes.filter((x) => x.id !== n.id); U.bridges = U.bridges.filter((b) => b.a !== "u:" + n.id && b.b !== "u:" + n.id);
     closeModal(); afterDataChange(); toast("Deleted.");
   }
@@ -1581,6 +1609,7 @@ export function mount(root, opts) {
     const cnt = countsByTopic(), kindTxt = { browser: "Saved in this browser (IndexedDB).", local: "Saved in this browser (local storage).", memory: "Not saved: this browser blocks storage (private window?). Download a backup before closing." }[userStore.kind] || "";
     openModal(`${mHead("Library", "Your topics, combined views and backup.")}
       <p class="lib-st" data-s="${userStore.kind}">${kindTxt}</p>
+      ${cb.cloud ? `<div class="lib-sec cloud"><h4>Google Drive</h4><p class="lib-cl" data-s="${CL.state}">${{ off: "Not connected. Connect to keep everything in your own Google Drive and use it on every device.", syncing: "Syncing…", synced: "Synced " + new Date(CL.at).toLocaleTimeString() + ". Changes are uploaded automatically while this page is open.", error: "Sync failed: " + esc(CL.err) }[CL.state] || ""}</p><div class="gcrow wrap"><button class="gcbtn primary" data-act="cloud-sync" ${CL.busy ? "disabled" : ""}>${cloudOn() ? "Sync now" : "Connect Google Drive"}</button></div><p class="msub">Stored privately in this app\u2019s hidden folder in the Google account you choose at sign-in. Only this app can read it. Edits from two devices are merged, and a deletion is never undone by an older copy.</p></div>` : ""}
       <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.map((t) => `<div class="lib-row"><i class="tdot" style="--tc:${t.color}"></i><b>${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="rename-topic" data-id="${esc(t.id)}">Rename</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
       <div class="lib-sec"><h4>Combined views</h4>${U.cols.length ? U.cols.map((c) => `<div class="lib-row"><b>${esc(c.label)}</b><small>${c.topics.map((x) => esc(topicInfo(x)?.label ?? x)).join(" + ")}</small><span class="aflex"></span><button class="gcbtn ghost danger" data-act="del-col" data-id="${esc(c.id)}">Delete</button></div>`).join("") : '<p class="msub">A combined view shows several topics in one tab, side by side, so you can look for relations.</p>'}<button class="gcbtn" data-act="combine">+ Combine topics</button></div>
       <div class="lib-sec"><h4>Backup</h4><div class="gcrow"><button class="gcbtn primary" data-act="export">Download backup</button><label class="gcbtn filebtn">Restore or merge a backup<input type="file" id="libRestore" accept=".json,application/json" hidden></label></div><p class="msub">A backup is one small file with all your topics, notes and connections. Restoring never overwrites what you already have.</p></div>`, "wide");
@@ -1723,9 +1752,10 @@ export function mount(root, opts) {
     "edit-note": (b) => { const n = raw.get(b.dataset.id); if (n?.nid) noteModal({ id: n.nid }); },
     "relate": (b) => { CN.only = b.dataset.id; CN.topics = new Set(); CN.res = null; CN.ai = ""; if (CN.mode === "link") CN.mode = "similar"; if (S.tool !== "conn") showPop("conn"); else runConn(); },
     "import-into": (b) => { closeModal(); const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; openModal(`${mHead("Add text to " + esc(t.label), "Paste text or upload files. They become small notes in this topic.")}<form id="mfImport" class="mform" data-topic="${esc(t.id)}"><label>Paste text<textarea name="paste" rows="7" autofocus></textarea></label><label>Or upload files <small>.txt .md</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label><div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Add to topic</button></div></form>`, "wide"); },
-    "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { t.label = v.trim().slice(0, 40); afterDataChange(); libraryModal(); } },
-    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. This cannot be undone.`)) return; const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
-    "del-col": (b) => { U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
+    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. This cannot be undone.`)) return; const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "del-col": (b) => { tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "cloud-sync": () => cloudSync(true),
     "export": () => { exportBackup(); toast("Backup downloaded."); },
   };
   root.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (!b || !root.contains(b)) return; const f = actions[b.dataset.act]; if (f) { e.preventDefault(); f(b); } });
@@ -1744,7 +1774,7 @@ export function mount(root, opts) {
   modal.addEventListener("change", async (e) => {
     if (e.target.id !== "libRestore") return;
     const f = e.target.files?.[0]; if (!f) return;
-    try { const j = JSON.parse(await f.text()); if (!j || (!j.topics && !j.notes)) throw new Error("not a backup"); const m = mergeState(U, j); U = m.state; closeModal(); afterDataChange(); toast(`Restored: ${m.addedT} topic${m.addedT === 1 ? "" : "s"}, ${m.addedN} note${m.addedN === 1 ? "" : "s"} added.`); }
+    try { const j = JSON.parse(await f.text()); if (!j || (!j.topics && !j.notes)) throw new Error("not a backup"); const m = mergeState(U, j, { revive: true }); U = m.state; closeModal(); afterDataChange(); toast(`Restored: ${m.addedT} topic${m.addedT === 1 ? "" : "s"}, ${m.addedN} note${m.addedN === 1 ? "" : "s"} added.`); }
     catch (err) { toast("That file is not a SpeakCosmos backup."); }
   });
   modal.addEventListener("submit", async (e) => {
@@ -1756,15 +1786,15 @@ export function mount(root, opts) {
       const ts = [...f.querySelectorAll("input[name=t]:checked")].map((x) => x.value);
       if (ts.length < 2) { toast("Pick at least two topics."); return; }
       let id = slug(f.name.value), k = 1; while (U.cols.some((c) => c.id === id)) id = slug(f.name.value) + "-" + ++k;
-      U.cols.push({ id, label: f.name.value.trim().slice(0, 40), topics: ts }); closeModal(); afterDataChange({ scope: "c:" + id }); toast("Combined view created."); return;
+      U.cols.push({ id, label: f.name.value.trim().slice(0, 40), topics: ts, t: Date.now() }); closeModal(); afterDataChange({ scope: "c:" + id }); toast("Combined view created."); return;
     }
     if (f.id === "mfImport") {
       const tk = f.dataset.topic, r = await readFiles([...(f.files.files || [])]), notes = [...textToNotes(U.topics.find((x) => x.id === tk)?.label, f.paste.value), ...r.notes];
-      for (const b of r.backups) U = mergeState(U, b).state;
+      for (const b of r.backups) U = mergeState(U, b, { revive: true }).state;
       const c = addNotes(tk, notes); closeModal(); afterDataChange({ scope: "u:" + tk }); toast(`Added ${c} note${c === 1 ? "" : "s"}.`);
     }
   });
-  const addBridge = (a, b, rel, note = "") => { if (!a || !b || a === b || U.bridges.some((x) => x.rel === rel && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))) return false; U.bridges.push({ a, b, rel, note: String(note).slice(0, 200) }); return true; };
+  const addBridge = (a, b, rel, note = "") => { if (!a || !b || a === b || U.bridges.some((x) => x.rel === rel && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))) return false; U.bridges.push({ a, b, rel, note: String(note).slice(0, 200), t: Date.now() }); return true; };
   pop.addEventListener("change", (e) => {
     const t = e.target;
     if (t.dataset?.cntopic) { t.checked ? CN.topics.add(t.dataset.cntopic) : CN.topics.delete(t.dataset.cntopic); CN.res = null; CN.ai = ""; renderConn(); }
@@ -1790,7 +1820,7 @@ export function mount(root, opts) {
     const lp = e.target.closest("[data-lpick]"); if (lp) { CN.link[lp.dataset.side] = lp.dataset.lpick; renderConn(); return; }
     const lc = e.target.closest("[data-lclear]"); if (lc) { CN.link[lc.dataset.lclear] = null; renderConn(); return; }
     if (e.target.closest("#lnGo")) { const { a, b, rel, note } = CN.link; if (addBridge(a, b, rel, note)) { CN.link = { a: null, b: null, rel, note: "" }; afterDataChange(); toast("Linked."); renderConn(); } else toast("Those two are already linked that way."); return; }
-    const del = e.target.closest("[data-cn-del]"); if (del) { const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b)), b = mine[+del.dataset.cnDel]; if (b) { U.bridges = U.bridges.filter((x) => x !== b); afterDataChange(); } return; }
+    const del = e.target.closest("[data-cn-del]"); if (del) { const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b)), b = mine[+del.dataset.cnDel]; if (b) { tombB(b); U.bridges = U.bridges.filter((x) => x !== b); afterDataChange(); } return; }
     const btn = e.target.closest("[data-cn]"); if (!btn) return;
     const card = btn.closest(".cn-card"), r = CN.res?.[+card.dataset.i]; if (!r) return;
     const key = [r.a, r.b].sort().join("|");
@@ -1857,6 +1887,7 @@ export function mount(root, opts) {
     if (wantScope && (wantScope.startsWith("u:") || wantScope.startsWith("c:")) && (colOf(wantScope) || topicInfo(wantScope))) { setScope(wantScope); if (startId && raw.has(startId)) setTimeout(() => select(startId), 700); }
     else { apply({ frame: false }); if (startId && raw.has(startId) && !S.selected && !wantScope) select(startId); }
     renderEmpty(); wake(1200);
+    if (cloudOn()) cloudSync(false); else if (cb.cloud) { CL.state = "off"; chromeSave(); }
     if (!read("sc_intro_topics") && !U.topics.length) { store("sc_intro_topics", "1"); setTimeout(() => toast("New: add your own topics with + Topic, then link them with Connections.", 7000), 1500); }
   }).catch(() => { userReady = true; renderTopics(); });
 
