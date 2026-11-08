@@ -660,7 +660,7 @@ export function mount(root, opts) {
   function buildArcs(list) {
     const scene = fg.scene(), N = 30, dk = S.dark;
     if (arcGroup) { scene.remove(arcGroup); arcGroup.children.forEach((o) => { o.geometry?.dispose(); o.material?.dispose(); }); arcGroup = null; }
-    arcList = []; arcHot = -1; arcPin = -1; if (bridgeEl) bridgeEl.hidden = true; arcTube = arcPulse = arcDots = null; hideArcTip();
+    for (const t of arcTags) { fg.scene().remove(t); t.material.dispose(); } arcTags = []; arcList = []; arcHot = -1; arcPin = -1; if (bridgeEl) bridgeEl.hidden = true; arcTube = arcPulse = arcDots = null; hideArcTip();
     if (!list.length) return;
     const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     const pos = new Float32Array(list.length * (N - 1) * 6), col = new Float32Array(list.length * (N - 1) * 6);
@@ -747,11 +747,13 @@ export function mount(root, opts) {
     bridgeEl.innerHTML = `<div class="bd-grid">${side(A, ta, "a")}<div class="bd-mid"><span class="bd-rel${warm ? " con" : ""}">${esc(rl)}</span><div class="bd-line" style="background:linear-gradient(${topicCol(ta)},${topicCol(tb)})"></div>${shared.length ? `<div class="bd-sh"><small>they share</small>${shared.map((w) => `<b>${esc(w)}</b>`).join("")}</div>` : ""}${own?.note ? `<div class="bd-note">“${esc(clip(own.note, 160))}”</div>` : ""}</div>${side(B, tb, "b")}</div><div class="bd-ai"><button class="gcbtn" data-bd="explain">✨ Explain this connection</button><button class="gcbtn" data-bd="explain-bn" lang="bn">বাংলায়</button><div class="bd-ans" aria-live="polite"></div></div><div class="bd-actions"><button class="gcbtn primary" data-bd="focus-pair">🎯 Focus on this pair</button><button class="gcbtn" data-bd="lineage">Lineage</button>${a.l.user ? `<button class="gcbtn" data-bd="unlink">Remove link</button>` : ""}<button class="gcbtn" data-bd="close" aria-label="Close">Close</button></div>`;
     bridgeEl.hidden = false; root.classList.add("has-bridge"); wake(1500);
   }
+  let arcTags = [];
   function setArcHot(i, ev) {
     if (i === arcHot) { if (i >= 0) placeArcTip(ev); return; }
     const scene = fg.scene();
     if (arcTube) { scene.remove(arcTube); arcTube.geometry.dispose(); arcTube.material.dispose(); arcTube = null; }
     if (arcPulse) { scene.remove(arcPulse); arcPulse.material.dispose(); arcPulse = null; }
+    for (const t of arcTags) { scene.remove(t); t.material.map?.dispose?.(); t.material.dispose(); } arcTags = [];
     arcHot = i; stage.style.cursor = i >= 0 ? "pointer" : "";
     if (i < 0) { hideArcTip(); if (arcGroup) arcGroup.children[0].material.opacity = S.dark ? 0.85 : 0.9; wake(300); return; }
     const a = arcList[i], v = []; for (let k = 0; k < 30; k++) v.push(new THREE.Vector3(a.pts[k * 3], a.pts[k * 3 + 1], a.pts[k * 3 + 2]));
@@ -760,6 +762,17 @@ export function mount(root, opts) {
     arcTube.renderOrder = 6; arcTube.raycast = () => {};
     arcPulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: mid, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false })); arcPulse.renderOrder = 7;
     scene.add(arcTube); scene.add(arcPulse);
+    { // the two topics this bridge joins: big labels in each topic's colour at the two ends, and the line itself in a bright accent
+      arcTube.material.color.set(S.dark ? "#ffd23f" : "#e8590c"); arcTube.material.opacity = 0.95;
+      const sz = Math.max(14, Math.min(60, (cur.extent || 440) / (mobile() ? 9 : 13)));
+      [[a.a.raw, 0], [a.b.raw, 29]].forEach(([nd, k]) => {
+        const t = topicOf(nd), info = topicInfo(t), col = topicCol(t);
+        const tag = new SpriteText(info?.full || info?.label || t, sz, "#ffffff"); tag.fontWeight = "800"; tag.backgroundColor = col; tag.padding = [5, 3]; tag.borderRadius = 6; tag.borderWidth = 1.2; tag.borderColor = S.dark ? "#ffffff" : "#1b1a17";
+        tag.material.depthTest = false; tag.material.depthWrite = false; tag.material.fog = false; tag.renderOrder = 9; tag.raycast = () => {};
+        tag.position.set(a.pts[k * 3], a.pts[k * 3 + 1] + sz * 0.9, a.pts[k * 3 + 2]);
+        scene.add(tag); arcTags.push(tag);
+      });
+    }
     if (arcGroup) arcGroup.children[0].material.opacity = S.dark ? 0.32 : 0.35; // the other bridges step back
     showArcTip(a, ev); wake(1200);
   }
