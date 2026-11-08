@@ -21,6 +21,15 @@ export function createStore() {
       catch (e) { db = null; lastError = String(e?.message || e); }
       try { const s = localStorage.getItem(LS); if (kind === "memory") kind = "local"; return s ? JSON.parse(s) : null; } catch (e) { return mem; }
     },
+    /** restore points: a short list of earlier copies of the data, kept next to it */
+    async loadHistory() {
+      try { if (db) { const v = await new Promise((ok, no) => { const q = db.transaction(ST).objectStore(ST).get("history"); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); return Array.isArray(v) ? v : []; } } catch (e) {}
+      try { const v = JSON.parse(localStorage.getItem("sc_user_history") || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+    },
+    async saveHistory(list) {
+      if (db) { try { await new Promise((ok, no) => { const tx = db.transaction(ST, "readwrite"); tx.objectStore(ST).put(list, "history"); tx.oncomplete = ok; tx.onerror = () => no(tx.error); tx.onabort = () => no(tx.error); }); return true; } catch (e) {} }
+      try { localStorage.setItem("sc_user_history", JSON.stringify(list.slice(0, 3))); return true; } catch (e) { return false; }
+    },
     /** debounced write; resolves when saved */
     save(state) {
       pending = state; clearTimeout(timer);

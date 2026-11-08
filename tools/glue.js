@@ -26,12 +26,17 @@
       const find=async()=>{const q=encodeURIComponent("name='"+NAME+"' and trashed=false");const r=await driveRequest('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,modifiedTime)');return (await r.json()).files?.[0]||null};
       return {
         connected:()=>!!restoreGoogleToken(),
-        connect:async()=>{await loadGoogleScript();return new Promise((ok,no)=>{const c=window.google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,callback:r=>{if(r.error)return no(new Error(r.error_description||r.error));storeGoogleToken(r.access_token,r.expires_in);ok(r.access_token)},error_callback:e=>no(new Error(e?.message||e?.type||'Google sign-in failed'))});c.requestAccessToken({prompt:''})})},
+        wanted:()=>{try{return localStorage.getItem('sc_cloud_on')==='1'}catch(e){return false}},
+        connect:async()=>{await loadGoogleScript();return new Promise((ok,no)=>{const c=window.google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,callback:r=>{if(r.error)return no(new Error(r.error_description||r.error));storeGoogleToken(r.access_token,r.expires_in);try{localStorage.setItem('sc_cloud_on','1')}catch(e){}ok(r.access_token)},error_callback:e=>no(new Error(e?.message||e?.type||'Google sign-in failed'))});c.requestAccessToken({prompt:''})})},
         load:async()=>{const f=await find();if(!f)return null;const r=await driveRequest('https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media');return r.json()},
-        save:async(state)=>{const body=JSON.stringify({app:'SpeakCosmos topics',version:1,savedAt:Date.now(),state});const f=await find();
-          if(f){await driveRequest('https://www.googleapis.com/upload/drive/v3/files/'+f.id+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body});return}
-          const b='sct_'+Date.now(),meta=JSON.stringify({name:NAME,parents:['appDataFolder']});
-          await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:'--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+body+'\r\n--'+b+'--'})}
+        save:async(state,prev)=>{
+          const up=async(name,obj)=>{const body=JSON.stringify(obj);const q=encodeURIComponent("name='"+name+"' and trashed=false");const r0=await driveRequest('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id)');const f=(await r0.json()).files?.[0];
+            if(f){await driveRequest('https://www.googleapis.com/upload/drive/v3/files/'+f.id+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body});return}
+            const b='sct_'+Date.now(),meta=JSON.stringify({name,parents:['appDataFolder']});
+            await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:'--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+body+'\r\n--'+b+'--'})};
+          if(prev)await up('speakcosmos-topics.prev.json',{app:'SpeakCosmos topics (previous copy)',version:1,savedAt:Date.now(),state:prev});
+          await up(NAME,{app:'SpeakCosmos topics',version:1,savedAt:Date.now(),state});
+        }
       };
     })(),
     ask:async(question,context,opts)=>{

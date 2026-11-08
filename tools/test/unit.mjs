@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { tokens, slug } from "../src/text.js";
 import { parseNote, plain } from "../src/wikilinks.js";
 import { suggest, contradictions, ideaDraft } from "../src/relations.js";
-import { normalize, buildGraph, textToNotes, mergeState, emptyState, sameState } from "../src/userdata.js";
+import { normalize, buildGraph, textToNotes, mergeState, emptyState, sameState, restoreSnapshot } from "../src/userdata.js";
 let n = 0; const t = (name, f) => { try { f(); n++; console.log("ok  ", name); } catch (e) { console.error("FAIL", name, "\n", e.message); process.exitCode = 1; } };
 
 t("tokens: english stems and stopwords", () => { const k = tokens("The Rocks are sedimentary and metamorphic"); assert.ok(k.includes("rock") && !k.includes("the")); });
@@ -81,5 +81,20 @@ t("cloud merge: newer edit wins, deletions propagate, restore can revive", () =>
   assert.ok(mergeState(B, newerEdit).state.notes.find((n) => n.id === "2"), "edit after deletion keeps the note");
   assert.ok(!mergeState(B, A).state.notes.find((n) => n.id === "2"), "older copy cannot undo a deletion");
   assert.ok(mergeState(B, A, { revive: true }).state.notes.find((n) => n.id === "2"), "manual restore revives");
+});
+t("undo: restoreSnapshot reverts adds, deletes and edits, and the revert survives a merge with a stale device", () => {
+  const prev = normalize({ topics: [{ id: "g", label: "G", updated: 10 }], notes: [{ id: "1", topic: "g", title: "one", updated: 10 }, { id: "2", topic: "g", title: "two", updated: 10 }], bridges: [] });
+  const stale = JSON.parse(JSON.stringify(prev));
+  // after: note 2 deleted, note 1 edited, a bridge added
+  const cur = normalize({ topics: prev.topics, notes: [{ id: "1", topic: "g", title: "edited", updated: 50 }], bridges: [{ a: "u:1", b: "u:3", rel: "SIMILAR", t: 60, auto: true, batch: "ab1" }], gone: { "n:2": 55 } });
+  assert.equal(cur.bridges[0].batch, "ab1", "auto/batch survive normalize");
+  const back = restoreSnapshot(cur, prev, 100);
+  assert.equal(back.notes.length, 2); assert.equal(back.notes.find((x) => x.id === "1").title, "one"); assert.equal(back.bridges.length, 0);
+  assert.ok(back.gone["b:u:1|u:3|SIMILAR"] >= 100 && !back.gone["n:2"]);
+  // a device still holding the undone state cannot bring the bridge back, nor delete note 2 again
+  const m = mergeState(back, cur).state; assert.equal(m.bridges.length, 0, "undone link stays gone"); assert.equal(m.notes.length, 2, "restored note stays");
+  const m2 = mergeState(cur, back).state; assert.equal(m2.bridges.length, 0); assert.equal(m2.notes.find((x) => x.id === "1").title, "one");
+  // re-linking after undo works again
+  const again = normalize({ ...back, bridges: [{ a: "u:1", b: "u:3", rel: "SIMILAR", t: 200 }] }); assert.equal(mergeState(again, back).state.bridges.length, 1);
 });
 console.log(n + " tests passed");

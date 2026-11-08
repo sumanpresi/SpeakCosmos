@@ -41,7 +41,7 @@ export function normalize(raw) {
     if (Array.isArray(n.p) && n.p.length === 3 && n.p.every(Number.isFinite)) note.p = n.p;
     s.notes.push(note);
   }
-  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 200), t: +b.t || 0 });
+  for (const b of Array.isArray(raw.bridges) ? raw.bridges : []) if (b && typeof b.a === "string" && typeof b.b === "string" && b.a !== b.b) s.bridges.push({ a: str(b.a, 80), b: str(b.b, 80), rel: ["RELATED", "SIMILAR", "CONTRADICTS", "SUPPORTS"].includes(b.rel) ? b.rel : "RELATED", note: str(b.note, 200), t: +b.t || 0, ...(b.auto ? { auto: true, batch: str(b.batch, 24) } : {}) });
   s.dismissed = [...new Set((Array.isArray(raw.dismissed) ? raw.dismissed : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 170)))].slice(0, 5000);
   const colIds = new Set();
   for (const c of Array.isArray(raw.cols) ? raw.cols : []) {
@@ -182,3 +182,25 @@ export function mergeState(cur, incoming, { revive = false } = {}) {
 
 /** true when two states hold the same things (used to skip pointless uploads) */
 export const sameState = (x, y) => JSON.stringify([x.topics, x.notes, x.bridges, x.cols, x.gone]) === JSON.stringify([y.topics, y.notes, y.bridges, y.cols, y.gone]);
+
+/**
+ * Undo support: give back the data as it was in `prev`. Things added since are removed (with a deletion mark so the
+ * removal also reaches other devices); things deleted or changed since come back with a fresh edit time so that they
+ * win over any older deletion mark kept on another device.
+ */
+export function restoreSnapshot(cur, prev, now = Date.now()) {
+  const out = JSON.parse(JSON.stringify(normalize(cur))), old = normalize(prev);
+  const bid = (x) => x.a + "|" + x.b + "|" + x.rel;
+  const part = (name, idOf, key, stampKey) => {
+    const pm = new Map(old[name].map((x) => [idOf(x), x])), cm = new Map(out[name].map((x) => [idOf(x), x]));
+    for (const [id, x] of [...cm]) if (!pm.has(id)) { cm.delete(id); out.gone[key(id)] = Math.max(now, (x[stampKey] || 0) + 1); }
+    for (const [id, x] of pm) { const c = cm.get(id); if (!c || JSON.stringify(c) !== JSON.stringify(x)) { const y = JSON.parse(JSON.stringify(x)); y[stampKey] = Math.max(now + 1, (c?.[stampKey] || 0) + 1); cm.set(id, y); delete out.gone[key(id)]; } }
+    out[name] = [...cm.values()];
+  };
+  part("topics", (t) => t.id, (id) => "t:" + id, "updated");
+  part("notes", (n) => n.id, (id) => "n:" + id, "updated");
+  part("bridges", bid, (id) => "b:" + id, "t");
+  part("cols", (c) => c.id, (id) => "c:" + id, "t");
+  out.dismissed = [...old.dismissed];
+  return normalize(out);
+}

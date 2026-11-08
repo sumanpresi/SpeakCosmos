@@ -10,7 +10,7 @@ import SpriteText from "three-spritetext";
 import { tokens, clip as tclip, norm, slug } from "./text.js";
 import { parseNote } from "./wikilinks.js";
 import { suggest, contradictions, ideaDraft } from "./relations.js";
-import { SCHEMA, emptyState, normalize, buildGraph, textToNotes, mergeState, sameState, newId, COLORS } from "./userdata.js";
+import { SCHEMA, emptyState, normalize, buildGraph, textToNotes, mergeState, sameState, restoreSnapshot, newId, COLORS } from "./userdata.js";
 import { createStore } from "./store.js";
 
 const RING_R = 380;
@@ -235,27 +235,75 @@ export function mount(root, opts) {
   }
   let saveTimer = 0, saveState = "idle";
   // ── Google Drive: the same data, kept in the person's own private app folder and merged safely ──────────────
-  const CL = { state: cb.cloud ? "off" : "none", at: 0, err: "", timer: 0, busy: false };
+  const CL = { state: cb.cloud ? "off" : "none", at: 0, err: "", timer: 0, busy: false, dirty: false, again: false, tried: false, prevAt: 0, poll: 0 };
   const cloudOn = () => !!(cb.cloud && cb.cloud.connected());
-  function scheduleCloud() { if (!cb.cloud || !cloudOn()) return; clearTimeout(CL.timer); CL.timer = setTimeout(() => cloudSync(false, true), 4000); }
-  async function cloudSync(interactive = false, uploadOnly = false) {
-    if (!cb.cloud || CL.busy) return;
+  function scheduleCloud() { if (!cb.cloud) return; CL.dirty = true; if (!cloudOn()) return; clearTimeout(CL.timer); CL.timer = setTimeout(() => cloudSync(false), 3000); }
+  // Every sync first reads what is in Drive and merges it in, so nothing from another device is ever overwritten.
+  async function cloudSync(interactive = false) {
+    if (!cb.cloud || destroyed) return;
+    if (CL.busy) { CL.again = true; return; }
     CL.busy = true;
     try {
       if (!cloudOn()) { if (!interactive) { CL.state = "off"; return; } await cb.cloud.connect(); }
       CL.state = "syncing"; chromeSave(); if (modalIsLibrary()) libraryModal();
-      let changed = false;
-      if (!uploadOnly) {
-        const remote = (await cb.cloud.load())?.state;
-        if (remote) { const m = mergeState(U, remote); if (!sameState(m.state, U)) { U = m.state; changed = true; } }
+      CL.dirty = false;
+      const remote = (await cb.cloud.load())?.state;
+      let changed = false, remoteDiffers = true;
+      if (remote) {
+        const m = mergeState(U, remote);
+        if (!sameState(m.state, U)) { await pushRestorePoint("Before merging from Google Drive"); U = m.state; changed = true; }
+        remoteDiffers = !sameState(m.state, normalize(remote));
       }
-      if (changed) { CL.busy = false; afterDataChange(); CL.busy = true; }
-      await cb.cloud.save(U);
+      if (changed) { afterDataChange(); CL.dirty = false; }
+      if (remoteDiffers) {
+        const now = Date.now(), keep = remote && now - CL.prevAt > 30 * 60000 ? normalize(remote) : null;
+        await cb.cloud.save(U, keep); if (keep) CL.prevAt = now;
+      }
       CL.state = "synced"; CL.at = Date.now(); CL.err = "";
-      if (interactive) toast(changed ? "Google Drive synced. Changes from Drive were merged in." : "Google Drive is up to date.");
-    } catch (e) { CL.state = "error"; CL.err = String(e?.message || e).slice(0, 140); if (interactive) toast(CL.err); }
-    finally { CL.busy = false; chromeSave(); if (modalIsLibrary()) libraryModal(); }
+      if (interactive) toast(changed ? "Google Drive synced. Changes from your other devices were merged in." : "Google Drive is up to date.");
+      else if (changed) toast("Updated with changes from your other devices.", 4200, true);
+    } catch (e) {
+      CL.state = "error"; CL.err = String(e?.message || e).slice(0, 140); CL.dirty = true; if (/expired|sign-in/i.test(CL.err)) CL.tried = false; if (interactive) toast(CL.err);
+    } finally {
+      CL.busy = false; chromeSave(); if (modalIsLibrary()) libraryModal();
+      if ((CL.again || CL.dirty) && cloudOn() && CL.state === "synced") { CL.again = false; scheduleCloud(); } else CL.again = false;
+    }
   }
+  // pull other devices' changes now and then, when the page is open and visible
+  function cloudPoll(force) {
+    if (!cb.cloud || CL.busy || document.hidden) return;
+    if (!cloudOn()) { if (cb.cloud.wanted?.() && CL.state !== "off") { CL.state = "off"; CL.tried = false; chromeSave(); } return; }
+    if (force || Date.now() - CL.at > 55000 || CL.dirty) cloudSync(false);
+  }
+  // After a restart Google needs one click from the person to hand out a new key; do it quietly on their first tap.
+  const onGesture = () => {
+    if (!cb.cloud || !cb.cloud.wanted?.() || cloudOn() || CL.busy || CL.tried) return;
+    CL.tried = true;
+    Promise.resolve(cb.cloud.connect()).then(() => cloudSync(false)).catch(() => { CL.state = "off"; chromeSave(); });
+  };
+  const onOnline = () => { if (cloudOn()) cloudSync(false); };
+  // ── undo and restore points ───────────────────────────────────────────────────────────────────────────────
+  const UNDO = []; let undoBytes = 0;
+  function checkpoint(label) {
+    const j = JSON.stringify(U); UNDO.push({ label, j }); undoBytes += j.length;
+    while (UNDO.length > 40 || (undoBytes > 48e6 && UNDO.length > 1)) undoBytes -= UNDO.shift().j.length;
+  }
+  function undo() {
+    const e = UNDO.pop(); if (!e) { toast("Nothing to undo."); return false; }
+    undoBytes -= e.j.length; U = restoreSnapshot(U, JSON.parse(e.j)); afterDataChange();
+    toast("Undone: " + e.label + ".", 4200); return true;
+  }
+  let RP = [];
+  async function pushRestorePoint(label) {
+    try {
+      const j = JSON.stringify(U); if (j.length > 4e6) return;
+      const list = await userStore.loadHistory(); const last = list[0];
+      if (last && JSON.stringify(last.state) === j) return;
+      list.unshift({ at: Date.now(), label, state: JSON.parse(j) }); list.length = Math.min(list.length, 12);
+      await userStore.saveHistory(list); RP = list;
+    } catch (e) {}
+  }
+  const refreshRP = () => userStore.loadHistory().then((l) => { RP = l; if (modalIsLibrary()) libraryModal(); }).catch(() => {});
   const modalIsLibrary = () => !modal.hidden && !!modal.querySelector(".lib-st");
   function saveUser() {
     scheduleCloud();
@@ -1080,8 +1128,8 @@ export function mount(root, opts) {
     const a = resolveIdea(A), b = resolveIdea(B);
     if (!a || !b) { if (!explicit) return null; return say(`<p>I could not find ${!a ? "“" + esc(A) + "”" : "“" + esc(B) + "”"} in the graph. Use a title as it appears on the map, or use Connections → Link ideas to search for it.</p>`); }
     if (a.id === b.id) return say("<p>Those are the same idea. Pick two different ones.</p>");
-    if (!addBridge(a.id, b.id, rel, "from Ask: " + t.slice(0, 80))) return say(`<p><b>${esc(a.l)}</b> and <b>${esc(b.l)}</b> are already linked that way.</p>`, [a, b]);
-    afterDataChange();
+    checkpoint("link"); if (!addBridge(a.id, b.id, rel, "from Ask: " + t.slice(0, 80))) { UNDO.pop(); return say(`<p><b>${esc(a.l)}</b> and <b>${esc(b.l)}</b> are already linked that way.</p>`, [a, b]); }
+    afterDataChange(); toast("Linked. You can undo it.", 9000, true);
     return say(`<p>Linked <b>${esc(a.l)}</b> ${esc(REL[rel].verb)} <b>${esc(b.l)}</b>. ${rel === "CONTRADICTS" ? "It shows as a red line." : "It now shows on the map."} You can remove it from Connections → Your connections.</p>`, [a, b]);
   }
   function askTopic(hits) {
@@ -1461,8 +1509,11 @@ export function mount(root, opts) {
   // ── Platform UI: topic tabs, notes, combined views, connections ────────────────────────────────────────────
   const modal = $("#gcModal"), toastEl = $("#gcToast");
   let toastT = 0;
-  function toast(msg, ms = 3600) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, ms); }
+  function toast(msg, ms = 3600, undoable = false) { toastEl.innerHTML = esc(msg) + (undoable && UNDO.length ? ' <button class="tt-undo" data-undo="1">Undo</button>' : ""); toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, ms); }
+  toastEl.addEventListener("click", (e) => { if (e.target.closest("[data-undo]")) { toastEl.hidden = true; undo(); } });
   function chromeSave() {
+    const cc = $("#gcCloud");
+    if (cc) { cc.hidden = !cb.cloud; cc.dataset.s = CL.state; cc.textContent = { off: "Connect Drive", syncing: "Syncing…", synced: "Synced ✓", error: "Retry sync", none: "" }[CL.state] || ""; cc.title = CL.state === "synced" ? "Saved in your Google Drive and kept in step with your other devices. Click to sync now." : CL.state === "error" ? "Sync failed: " + CL.err + ". Click to retry." : CL.state === "off" ? "Click to keep everything in your Google Drive and use it on every device." : "Syncing with Google Drive…"; }
     const el = $("#gcSave"); if (!el) return;
     el.dataset.s = saveState;
     const cl = CL.state === "synced" ? " Also saved in your Google Drive." : CL.state === "syncing" ? " Syncing with Google Drive…" : CL.state === "error" ? " Google Drive sync failed: " + CL.err : cb.cloud ? " Not synced to Google Drive yet (open Library)." : "";
@@ -1473,7 +1524,7 @@ export function mount(root, opts) {
     const el = $("#gcTopics"), cnt = countsByTopic(), on = S.lens === "explore" ? S.scope || "" : null;
     const tab = (id, label, extra = "", color = "") => `<button class="tp ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
     el.innerHTML = `<div class="tp-scroll">${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${U.topics.map((t) => tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>`, t.color)).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}</div>
-      <div class="tp-right"><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Connections</button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
+      <div class="tp-right"><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Connections</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
     chromeSave();
   }
   function renderEmpty() {
@@ -1581,9 +1632,9 @@ export function mount(root, opts) {
   }
   function deleteNote() {
     const n = U.notes.find((x) => x.id === ED.id); if (!n || !confirm(`Delete “${n.title}”? This cannot be undone.`)) return;
-    tomb("n:" + n.id); U.bridges.filter((b) => b.a === "u:" + n.id || b.b === "u:" + n.id).forEach(tombB);
+    checkpoint("delete note"); tomb("n:" + n.id); U.bridges.filter((b) => b.a === "u:" + n.id || b.b === "u:" + n.id).forEach(tombB);
     U.notes = U.notes.filter((x) => x.id !== n.id); U.bridges = U.bridges.filter((b) => b.a !== "u:" + n.id && b.b !== "u:" + n.id);
-    closeModal(); afterDataChange(); toast("Deleted.");
+    closeModal(); afterDataChange(); toast("Deleted.", 9000, true);
   }
   function noteHtml(text) {
     const RE = /\[\[([^\[\]|\n]{1,120}?)(?:\|([^\[\]\n]*))?\]\]/g;
@@ -1612,6 +1663,7 @@ export function mount(root, opts) {
       ${cb.cloud ? `<div class="lib-sec cloud"><h4>Google Drive</h4><p class="lib-cl" data-s="${CL.state}">${{ off: "Not connected. Connect to keep everything in your own Google Drive and use it on every device.", syncing: "Syncing…", synced: "Synced " + new Date(CL.at).toLocaleTimeString() + ". Changes are uploaded automatically while this page is open.", error: "Sync failed: " + esc(CL.err) }[CL.state] || ""}</p><div class="gcrow wrap"><button class="gcbtn primary" data-act="cloud-sync" ${CL.busy ? "disabled" : ""}>${cloudOn() ? "Sync now" : "Connect Google Drive"}</button></div><p class="msub">Stored privately in this app\u2019s hidden folder in the Google account you choose at sign-in. Only this app can read it. Edits from two devices are merged, and a deletion is never undone by an older copy.</p></div>` : ""}
       <div class="lib-sec"><h4>Topics</h4>${U.topics.length ? U.topics.map((t) => `<div class="lib-row"><i class="tdot" style="--tc:${t.color}"></i><b>${esc(t.label)}</b><small>${cnt["u:" + t.id] ?? 0} items</small><span class="aflex"></span><button class="gcbtn ghost" data-act="import-into" data-id="${esc(t.id)}">Add text</button><button class="gcbtn ghost" data-act="rename-topic" data-id="${esc(t.id)}">Rename</button><button class="gcbtn ghost danger" data-act="del-topic" data-id="${esc(t.id)}">Delete</button></div>`).join("") : '<p class="msub">No topics of your own yet. Use + Topic.</p>'}</div>
       <div class="lib-sec"><h4>Combined views</h4>${U.cols.length ? U.cols.map((c) => `<div class="lib-row"><b>${esc(c.label)}</b><small>${c.topics.map((x) => esc(topicInfo(x)?.label ?? x)).join(" + ")}</small><span class="aflex"></span><button class="gcbtn ghost danger" data-act="del-col" data-id="${esc(c.id)}">Delete</button></div>`).join("") : '<p class="msub">A combined view shows several topics in one tab, side by side, so you can look for relations.</p>'}<button class="gcbtn" data-act="combine">+ Combine topics</button></div>
+      <div class="lib-sec"><h4>Restore points</h4><p class="sub">Automatic earlier copies, made at the start of a session and before risky changes. Ctrl+Z also undoes your last change.</p>${RP.length ? RP.map((p, i) => `<div class="lib-row"><b>${esc(p.label)}</b><small>${new Date(p.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${p.state.notes?.length ?? 0} notes · ${p.state.bridges?.length ?? 0} links</small><span class="aflex"></span><button class="gcbtn ghost" data-act="rp-restore" data-i="${i}">Go back to this</button></div>`).join("") : '<p class="sub">None yet.</p>'}</div>
       <div class="lib-sec"><h4>Backup</h4><div class="gcrow"><button class="gcbtn primary" data-act="export">Download backup</button><label class="gcbtn filebtn">Restore or merge a backup<input type="file" id="libRestore" accept=".json,application/json" hidden></label></div><p class="msub">A backup is one small file with all your topics, notes and connections. Restoring never overwrites what you already have.</p></div>`, "wide");
   }
   function exportBackup() {
@@ -1718,14 +1770,38 @@ export function mount(root, opts) {
       const cards = CN.busy ? '<p class="sub">Looking…</p>' : CN.res ? (CN.res.length ? CN.res.map((r, i) => `<div class="cn-card ${r.ai?.verdict === "unrelated" ? "dim" : ""}" data-i="${i}"><div class="cn-pair">${chip(r.a)}<span class="cn-x">${mode === "contradict" ? "⇄" : "↔"}</span>${chip(r.b)}</div>${r.ai ? `<p class="cn-ai" data-v="${r.ai.verdict}"><b>${VL[r.ai.verdict] ?? "AI"}</b> ${esc(r.ai.why)}</p>` : ""}<p class="cn-why">${esc(why(r.why))}</p><div class="gcrow"><button class="gcbtn primary" data-cn="accept">${M.accept}</button><button class="gcbtn" data-cn="spark">✦ Spark an idea</button><button class="gcbtn ghost" data-cn="no">${M.no}</button></div></div>`).join("") : `<p class="sub">Nothing found for this choice. ${mode === "contradict" ? "Offline matching needs wording like “not”, “rejects” or opposite terms; the AI search can read meaning." : "Add more notes, share #tags, or try the AI search."}</p>`) : "";
       body = `<div class="cn-topics" role="group" aria-label="Topics to compare">${tops.map((t) => `<label class="tchip ${CN.topics.has(t.id) ? "on" : ""}"><input type="checkbox" data-cntopic="${esc(t.id)}" ${CN.topics.has(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("")}${sel.length ? '<button class="tchip clear" data-cnall>All topics</button>' : ""}</div><p class="sub tight">${hint}</p>
         <div class="gcrow wrap"><button class="gcbtn primary" id="cnFind">${CN.res ? "Search again" : "Find " + M.word}</button><button class="gcbtn" id="cnAI" ${CN.aiBusy ? "disabled" : ""} title="${aiOk() ? "The AI reads the notes and proposes pairs" : "Connect an AI in Settings to use this"}">${CN.aiBusy ? "AI is reading…" : "✦ Ask AI to find"}</button>${CN.only ? '<button class="gcbtn ghost" id="cnAll">All nodes</button>' : ""}</div>
-        ${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
+        ${CN.res?.length && !CN.aiBusy ? `<button class="gcbtn" id="cnAuto" title="Links every strong match in one go${aiOk() ? ", after the AI has checked them" : ""}. You can undo it.">⚡ Auto-link strong matches</button>` : ""}${CN.res?.length && aiOk() && !CN.aiBusy ? '<button class="lnk" id="cnJudge">Check these with AI</button>' : ""}${CN.ai ? `<p class="cn-sum">${esc(CN.ai)}</p>` : ""}
         <div class="cn-list" aria-live="polite">${cards}</div>`;
     }
     const REL_L = { SIMILAR: "≈", CONTRADICTS: "⇄", SUPPORTS: "→", RELATED: "↔" };
     const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b));
     pop.innerHTML = `<h3>Connections</h3><div class="seg wide cn-modes" role="tablist">${[["similar", "Similar ideas"], ["contradict", "Contradictions"], ["link", "Link ideas"]].map(([k, l]) => `<button data-cnmode="${k}" class="${mode === k ? "on" : ""}" role="tab" aria-selected="${mode === k}">${l}</button>`).join("")}</div>
       <p class="sub">${mode === "link" ? "Tell the app that two ideas are related, similar or opposed. It draws the link between them, in any topics." : CN.only && raw.has(CN.only) ? `Looking at <b>${esc(raw.get(CN.only).l)}</b> against other topics. ${M.intro}` : M.intro}</p>${body}
-      ${mine.length ? `<details class="cn-mine"><summary>Your connections · ${mine.length}</summary>${mine.map((b, i) => `<div class="cn-row"><span>${esc(clip(raw.get(b.a).l, 22))} <b class="rl" data-r="${b.rel || "RELATED"}">${REL_L[b.rel || "RELATED"]}</b> ${esc(clip(raw.get(b.b).l, 22))}</span><button class="gcbtn ghost" data-cn-del="${i}" title="Remove this connection">Remove</button></div>`).join("")}</details>` : ""}`;
+      ${mine.length ? `<details class="cn-mine"><summary>Your connections · ${mine.length}</summary>${Object.entries(mine.reduce((m, b) => { if (b.auto && b.batch) (m[b.batch] ||= []).push(b); return m; }, {})).map(([id, l]) => `<div class="cn-row batch"><span>⚡ Auto-linked ${l.length} · ${new Date(l[0].t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span><button class="gcbtn ghost" data-cn-undobatch="${esc(id)}">Undo these</button></div>`).join("")}${mine.map((b, i) => `<div class="cn-row"><span>${esc(clip(raw.get(b.a).l, 22))} <b class="rl" data-r="${b.rel || "RELATED"}">${REL_L[b.rel || "RELATED"]}</b> ${esc(clip(raw.get(b.b).l, 22))}</span><button class="gcbtn ghost" data-cn-del="${i}" title="Remove this connection">Remove</button></div>`).join("")}</details>` : ""}`;
+  }
+  const strongMatch = (r) => CN.mode === "contradict" ? (r.why.cues?.length >= 1 && r.why.words.length >= 3) : !!(r.why.title || r.why.tags.length >= 1 || (r.why.words.length >= 3 && r.score >= 0.25) || r.why.via.length);
+  async function autoLink() {
+    if (!CN.res?.length || CN.aiBusy) return;
+    const want = CN.mode === "contradict" ? "contradicts" : "similar", rel = MODE[CN.mode].rel;
+    let list = CN.res.filter((r) => (r.ai ? r.ai.verdict === want : strongMatch(r))).slice(0, 40);
+    if (aiOk() && list.some((r) => !r.ai)) {
+      CN.aiBusy = true; renderConn();
+      try {
+        const todo = list.filter((r) => !r.ai);
+        for (let i = 0; i < todo.length; i += 10) {
+          const chunk = todo.slice(i, i + 10), r = await cb.ask("judge", pairCtx(chunk), { topic: "judge" });
+          for (const v of r?.verdicts ?? []) if (chunk[v.i - 1]) chunk[v.i - 1].ai = { verdict: v.verdict, why: v.why };
+        }
+        list = list.filter((r) => r.ai?.verdict === want);
+      } catch (e) { CN.aiBusy = false; renderConn(); return toast("AI could not check the pairs, so nothing was linked: " + String(e?.message || "").slice(0, 80)); }
+      CN.aiBusy = false;
+    }
+    if (!list.length) { renderConn(); return toast("No strong matches to link automatically. Review the cards below one by one."); }
+    checkpoint("auto-link"); const batch = newId("ab"); let n = 0; const done = new Set();
+    for (const r of list) if (addBridge(r.a, r.b, rel, r.ai?.why || "auto-linked")) { const b = U.bridges[U.bridges.length - 1]; b.auto = true; b.batch = batch; n++; done.add(r); }
+    if (!n) { UNDO.pop(); renderConn(); return toast("Those pairs are already linked."); }
+    CN.res = CN.res.filter((r) => !done.has(r)); afterDataChange();
+    toast(`Linked ${n} ${CN.mode === "contradict" ? "contradiction" : "similar"} pair${n === 1 ? "" : "s"}. They sync to all your devices.`, 14000, true);
   }
   const sparkFrom = (r) => { const A = raw.get(r.a), B = raw.get(r.b), dr = ideaDraft({ label: A.l }, { label: B.l }, r.why, CN.mode), t = U.topics.find((x) => norm(x.label) === "new ideas"); return { title: dr.title, text: dr.text, topic: t ? t.id : "__ideas", spark: true, from: [r.a, r.b] }; };
   async function aiSharpen() {
@@ -1744,7 +1820,7 @@ export function mount(root, opts) {
   const strip = $("#gcTopics");
   strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); renderEmpty(); } });
   const actions = {
-    "new-topic": () => newTopicModal(), "combine": () => combineModal(), "library": () => libraryModal(),
+    "new-topic": () => newTopicModal(), "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
     "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope); CN.topics = new Set(k ? [S.scope] : []); CN.only = null; CN.res = null; CN.ai = ""; showPop("conn"); },
     "new-note": (b) => { const t = b?.dataset.topic; noteModal(t ? { topic: t } : {}); },
     "note-about": (b) => { const n = raw.get(b.dataset.id); if (!n) return; noteModal({ title: "", text: `About [[${n.l}]]\n\n` }); },
@@ -1753,8 +1829,8 @@ export function mount(root, opts) {
     "relate": (b) => { CN.only = b.dataset.id; CN.topics = new Set(); CN.res = null; CN.ai = ""; if (CN.mode === "link") CN.mode = "similar"; if (S.tool !== "conn") showPop("conn"); else runConn(); },
     "import-into": (b) => { closeModal(); const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; openModal(`${mHead("Add text to " + esc(t.label), "Paste text or upload files. They become small notes in this topic.")}<form id="mfImport" class="mform" data-topic="${esc(t.id)}"><label>Paste text<textarea name="paste" rows="7" autofocus></textarea></label><label>Or upload files <small>.txt .md</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label><div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">Add to topic</button></div></form>`, "wide"); },
     "rename-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const v = prompt("New name for this topic:", t.label); if (v && v.trim()) { t.label = v.trim().slice(0, 40); t.updated = Date.now(); afterDataChange(); libraryModal(); } },
-    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. This cannot be undone.`)) return; const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
-    "del-col": (b) => { tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "del-topic": (b) => { const t = U.topics.find((x) => x.id === b.dataset.id); if (!t) return; const n = U.notes.filter((x) => x.topic === t.id).length; if (!confirm(`Delete the topic “${t.label}” and its ${n} note${n === 1 ? "" : "s"}? Download a backup first if unsure. You can undo it straight after, or from Library › Restore points.`)) return; pushRestorePoint("Before deleting topic " + t.label); checkpoint("delete topic"); const ids = new Set(U.notes.filter((x) => x.topic === t.id).map((x) => "u:" + x.id)); tomb("t:" + t.id); U.notes.filter((x) => x.topic === t.id).forEach((x) => tomb("n:" + x.id)); U.bridges.filter((x) => ids.has(x.a) || ids.has(x.b)).forEach(tombB); U.topics = U.topics.filter((x) => x.id !== t.id); U.notes = U.notes.filter((x) => x.topic !== t.id); U.bridges = U.bridges.filter((x) => !ids.has(x.a) && !ids.has(x.b)); U.cols.forEach((c) => { c.topics = c.topics.filter((x) => x !== "u:" + t.id); }); U.cols = U.cols.filter((c) => c.topics.length > 1); if (S.scope === "u:" + t.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
+    "del-col": (b) => { checkpoint("remove combined view"); tomb("c:" + b.dataset.id); U.cols = U.cols.filter((c) => c.id !== b.dataset.id); if (S.scope === "c:" + b.dataset.id) S.scope = null; afterDataChange({ scope: S.scope }); libraryModal(); },
     "cloud-sync": () => cloudSync(true),
     "export": () => { exportBackup(); toast("Backup downloaded."); },
   };
@@ -1774,7 +1850,7 @@ export function mount(root, opts) {
   modal.addEventListener("change", async (e) => {
     if (e.target.id !== "libRestore") return;
     const f = e.target.files?.[0]; if (!f) return;
-    try { const j = JSON.parse(await f.text()); if (!j || (!j.topics && !j.notes)) throw new Error("not a backup"); const m = mergeState(U, j, { revive: true }); U = m.state; closeModal(); afterDataChange(); toast(`Restored: ${m.addedT} topic${m.addedT === 1 ? "" : "s"}, ${m.addedN} note${m.addedN === 1 ? "" : "s"} added.`); }
+    try { const j = JSON.parse(await f.text()); if (!j || (!j.topics && !j.notes)) throw new Error("not a backup"); pushRestorePoint("Before restoring a backup"); checkpoint("restore backup"); const m = mergeState(U, j, { revive: true }); U = m.state; closeModal(); afterDataChange(); toast(`Restored: ${m.addedT} topic${m.addedT === 1 ? "" : "s"}, ${m.addedN} note${m.addedN === 1 ? "" : "s"} added.`); }
     catch (err) { toast("That file is not a SpeakCosmos backup."); }
   });
   modal.addEventListener("submit", async (e) => {
@@ -1816,16 +1892,18 @@ export function mount(root, opts) {
     if (e.target.closest("#cnFind")) { runConn(); return; }
     if (e.target.closest("#cnAI")) { aiDiscover(); return; }
     if (e.target.closest("#cnJudge")) { aiJudge(); return; }
+    if (e.target.closest("#cnAuto")) { autoLink(); return; }
+    const ub = e.target.closest("[data-cn-undobatch]"); if (ub) { const id = ub.dataset.cnUndobatch, hit = U.bridges.filter((b) => b.batch === id); if (hit.length) { checkpoint("auto-link batch"); hit.forEach(tombB); U.bridges = U.bridges.filter((b) => b.batch !== id); afterDataChange(); toast(`Removed ${hit.length} auto-made link${hit.length === 1 ? "" : "s"}.`, 7000, true); } return; }
     if (e.target.closest("#cnAll")) { CN.only = null; CN.res = null; renderConn(); return; }
     const lp = e.target.closest("[data-lpick]"); if (lp) { CN.link[lp.dataset.side] = lp.dataset.lpick; renderConn(); return; }
     const lc = e.target.closest("[data-lclear]"); if (lc) { CN.link[lc.dataset.lclear] = null; renderConn(); return; }
-    if (e.target.closest("#lnGo")) { const { a, b, rel, note } = CN.link; if (addBridge(a, b, rel, note)) { CN.link = { a: null, b: null, rel, note: "" }; afterDataChange(); toast("Linked."); renderConn(); } else toast("Those two are already linked that way."); return; }
-    const del = e.target.closest("[data-cn-del]"); if (del) { const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b)), b = mine[+del.dataset.cnDel]; if (b) { tombB(b); U.bridges = U.bridges.filter((x) => x !== b); afterDataChange(); } return; }
+    if (e.target.closest("#lnGo")) { const { a, b, rel, note } = CN.link; checkpoint("link"); if (addBridge(a, b, rel, note)) { CN.link = { a: null, b: null, rel, note: "" }; afterDataChange(); toast("Linked.", 9000, true); renderConn(); } else { UNDO.pop(); toast("Those two are already linked that way."); } return; }
+    const del = e.target.closest("[data-cn-del]"); if (del) { const mine = U.bridges.filter((b) => raw.has(b.a) && raw.has(b.b)), b = mine[+del.dataset.cnDel]; if (b) { checkpoint("remove connection"); tombB(b); U.bridges = U.bridges.filter((x) => x !== b); afterDataChange(); toast("Connection removed.", 7000, true); } return; }
     const btn = e.target.closest("[data-cn]"); if (!btn) return;
     const card = btn.closest(".cn-card"), r = CN.res?.[+card.dataset.i]; if (!r) return;
     const key = [r.a, r.b].sort().join("|");
-    if (btn.dataset.cn === "accept") { addBridge(r.a, r.b, MODE[CN.mode].rel, r.ai?.why || ""); CN.res = CN.res.filter((x) => x !== r); afterDataChange(); toast(CN.mode === "contradict" ? "Marked. The contradiction shows as a red line." : "Connected. The link now shows in the map."); }
-    else if (btn.dataset.cn === "no") { U.dismissed.push((CN.mode === "contradict" ? "c:" : "") + key); CN.res = CN.res.filter((x) => x !== r); syncUser({ persist: true }); renderConn(); }
+    if (btn.dataset.cn === "accept") { checkpoint(CN.mode === "contradict" ? "mark contradiction" : "connect similar ideas"); addBridge(r.a, r.b, MODE[CN.mode].rel, r.ai?.why || ""); CN.res = CN.res.filter((x) => x !== r); afterDataChange(); toast(CN.mode === "contradict" ? "Marked. The contradiction shows as a red line." : "Connected. The link now shows in the map.", 9000, true); }
+    else if (btn.dataset.cn === "no") { checkpoint("dismiss"); U.dismissed.push((CN.mode === "contradict" ? "c:" : "") + key); CN.res = CN.res.filter((x) => x !== r); syncUser({ persist: true }); renderConn(); toast("Dismissed.", 5000, true); }
     else if (btn.dataset.cn === "spark") { noteModal(sparkFrom(r)); }
   });
 
@@ -1852,7 +1930,8 @@ export function mount(root, opts) {
     if (e.target.id === "gcSpinChk") setSpin(e.target.checked);
   });
   const onKey = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "z" && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "") && !e.target?.isContentEditable) { if (UNDO.length) { e.preventDefault(); undo(); } }
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); qEl.focus(); qEl.select(); }
     else if (e.key === "Escape" && !modal.hidden) closeModal();
     else if (e.key === "Escape" && !$("#gcHelpM").hidden) showHelp(false);
     else if (e.key === "Escape" && document.activeElement !== qEl) { if (S.tool) showPop(S.tool); else if (S.highlight) clearPath(); else if (S.selected) select(null); }
@@ -1860,10 +1939,12 @@ export function mount(root, opts) {
   document.addEventListener("keydown", onKey);
   const ro = new ResizeObserver(() => { const w = stage.clientWidth, h = stage.clientHeight; if (w > 50 && h > 50) { fg.width(w).height(h); applyViewOffset(); wake(500); } });
   ro.observe(stage);
-  const onVis = () => { if (document.hidden) { fg.pauseAnimation(); sleeping = true; if (saveState === "saving") userStore.flush(U); } else wake(1200); };
+  const onVis = () => { if (document.hidden) { fg.pauseAnimation(); sleeping = true; if (saveState === "saving") userStore.flush(U); if (CL.dirty && cloudOn()) cloudSync(false); } else { wake(1200); cloudPoll(Date.now() - CL.at > 15000); } };
   const onHide = () => { if (saveState === "saving") userStore.flush(U); };
   window.addEventListener("pagehide", onHide);
   document.addEventListener("visibilitychange", onVis);
+  CL.poll = setInterval(() => cloudPoll(false), 60000);
+  window.addEventListener("online", onOnline); document.addEventListener("pointerdown", onGesture, true);
   ["pointerdown", "pointermove", "wheel", "touchstart"].forEach((ev) => stage.addEventListener(ev, () => wake(ev === "pointermove" ? 900 : 1500), { passive: true }));
 
   // ── start ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1887,6 +1968,7 @@ export function mount(root, opts) {
     if (wantScope && (wantScope.startsWith("u:") || wantScope.startsWith("c:")) && (colOf(wantScope) || topicInfo(wantScope))) { setScope(wantScope); if (startId && raw.has(startId)) setTimeout(() => select(startId), 700); }
     else { apply({ frame: false }); if (startId && raw.has(startId) && !S.selected && !wantScope) select(startId); }
     renderEmpty(); wake(1200);
+    pushRestorePoint("Start of session"); refreshRP();
     if (cloudOn()) cloudSync(false); else if (cb.cloud) { CL.state = "off"; chromeSave(); }
     if (!read("sc_intro_topics") && !U.topics.length) { store("sc_intro_topics", "1"); setTimeout(() => toast("New: add your own topics with + Topic, then link them with Connections.", 7000), 1500); }
   }).catch(() => { userReady = true; renderTopics(); });
@@ -1895,7 +1977,7 @@ export function mount(root, opts) {
     refresh() { renderInspector(); chrome(); if (askSt.open) renderAsk(); },
     destroy() {
       destroyed = true; cancelAnimationFrame(raf); clearTimeout(hoverTimer);
-      document.removeEventListener("keydown", onKey); linRo.disconnect(); window.removeEventListener("beforeinstallprompt", onBip); window.removeEventListener("appinstalled", onBip); document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", onHide); if (saveState === "saving") userStore.flush(U); clearTimeout(toastT); ro.disconnect();
+      document.removeEventListener("keydown", onKey); linRo.disconnect(); window.removeEventListener("beforeinstallprompt", onBip); window.removeEventListener("appinstalled", onBip); document.removeEventListener("visibilitychange", onVis); clearInterval(CL.poll); clearTimeout(CL.timer); window.removeEventListener("online", onOnline); document.removeEventListener("pointerdown", onGesture, true); window.removeEventListener("pagehide", onHide); if (saveState === "saving") userStore.flush(U); clearTimeout(toastT); ro.disconnect();
       try { fg.pauseAnimation(); fg._destructor?.(); fg.renderer().dispose(); fg.renderer().forceContextLoss?.(); } catch (e) {}
       root.innerHTML = "";
     },
