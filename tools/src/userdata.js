@@ -25,7 +25,7 @@ export function normalize(raw) {
     s.topics.push({ id, label: str(t.label, 40).trim() || id, color: /^#[0-9a-f]{6}$/i.test(t.color) ? t.color : COLORS[s.topics.length % COLORS.length], desc: str(t.desc, 300), created: +t.created || Date.now(), updated: +t.updated || +t.created || Date.now(), auto: !!t.auto, parent: str(t.parent, 60) });
   }
   // a subtopic points at one top-level topic; anything else (missing parent, self, a parent that is itself a subtopic) becomes a normal topic
-  { const by = new Map(s.topics.map((t) => [t.id, t])); for (const t of s.topics) { const p = by.get(t.parent); if (!p || p === t || p.parent) t.parent = ""; } for (const t of s.topics) if (t.parent && s.topics.some((c) => c.parent === t.id)) t.parent = ""; }
+  { const by = new Map(s.topics.map((t) => [t.id, t])); for (const t of s.topics) { if (t.parent === "phil") continue; const p = by.get(t.parent); if (!p || p === t || p.parent) t.parent = ""; } for (const t of s.topics) if (t.parent && s.topics.some((c) => c.parent === t.id)) t.parent = ""; }
   const seenN = new Set();
   for (const n of Array.isArray(raw.notes) ? raw.notes : []) {
     if (!n || typeof n !== "object") continue;

@@ -218,9 +218,9 @@ export function mount(root, opts) {
   const scopeLabel = () => (!S.scope ? "All topics" : colOf(S.scope) ? colOf(S.scope).label + " · combined" : (topicInfo(S.scope)?.label ?? "Topic") + " map");
   const scopeCount = () => { let c = 0; for (const n of allNodes) if (inScope(n)) c++; return c; };
   const kidsOf = (key) => U.topics.filter((x) => x.parent === key);
-  const topicsAll = () => [...BUILTIN, ...U.topics.map((t) => { const p = t.parent && U.topics.find((x) => x.id === t.parent); return { id: "u:" + t.id, label: t.label, full: p ? p.label + " › " + t.label : t.label, color: t.color, user: true, key: t.id, auto: t.auto, parent: p ? "u:" + p.id : "" }; })];
+  const topicsAll = () => [...BUILTIN, ...U.topics.map((t) => { const p = t.parent === "phil" ? { id: "phil", label: "Philosophy", ref: "phil" } : t.parent && U.topics.find((x) => x.id === t.parent); return { id: "u:" + t.id, label: t.label, full: p ? p.label + " › " + t.label : t.label, color: t.color, user: true, key: t.id, auto: t.auto, parent: p ? (p.ref || "u:" + p.id) : "" }; })];
   // a topic with subtopics stands for itself plus all of them
-  const scopeTopics = (id) => { const k = id && id.startsWith("u:") ? id.slice(2) : null, kids = k ? kidsOf(k) : []; return kids.length ? [id, ...kids.map((c) => "u:" + c.id)] : null; };
+  const scopeTopics = (id) => { const k = id && id.startsWith("u:") ? id.slice(2) : id === "phil" ? "phil" : null, kids = k ? kidsOf(k) : []; return kids.length ? [id, ...kids.map((c) => "u:" + c.id)] : null; };
   const topicInfo = (id) => topicsAll().find((t) => t.id === id);
   const colOf = (sc) => (sc && String(sc).startsWith("c:") ? U.cols.find((c) => "c:" + c.id === sc) : null);
   let SS = null; // topics shown in the current tab (null = everything)
@@ -242,7 +242,7 @@ export function mount(root, opts) {
     const rad = new Map(list.map((t) => [t, 40]));
     for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1] * ysOf(t), q[2]))); } }
     // subtopics stay together: each family (a topic and its subtopics) is one group, members sit on a small ring around the group centre
-    const par = (t) => { const k = t.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === t)?.parent : null; return k ? "u:" + k : t; };
+    const par = (t) => { const k = t.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === t)?.parent : null; return k === "phil" ? "phil" : k ? "u:" + k : t; };
     const fam = new Map(); for (const t of list) { const g = par(t); if (!fam.has(g)) fam.set(g, []); fam.get(g).push(t); }
     const G = [...fam.values()].map((mem) => {
       const k = mem.length, rs = mem.map((t) => rad.get(t));
@@ -1162,7 +1162,7 @@ export function mount(root, opts) {
     return `<p>${esc(n.d)}</p>${task === "why" && rel.length ? `<ul>${rel.slice(0, 5).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}`;
   }
   // ── "What the speaker says": the transcript behind a note (English + Bengali) and AI that explains it further ──────
-  const SRC_MAP = { "u:reservation-what-why": ["what", "Lecture · Reservation: what and why"], "u:reservation-nehru-ambedkar": ["nehru", "Podcast · UGC rules, Ambedkar and Nehru"], "u:reservation-generations": ["vikas", "Clip · Generations and casteism"], "u:mh-roots": ["modern", "Lecture · 1971 and 2025"], "u:mh-1971": ["modern", "Lecture · 1971 and 2025"], "u:mh-sindoor": ["modern", "Lecture · 1971 and 2025"], "u:mh-ideas": ["modern", "Lecture · 1971 and 2025"] };
+  const SRC_MAP = { "u:reservation-what-why": ["what", "Lecture · Reservation: what and why"], "u:reservation-nehru-ambedkar": ["nehru", "Podcast · UGC rules, Ambedkar and Nehru"], "u:reservation-generations": ["vikas", "Clip · Generations and casteism"], "u:mh-roots": ["modern", "Lecture · 1971 and 2025"], "u:mh-1971": ["modern", "Lecture · 1971 and 2025"], "u:mh-sindoor": ["modern", "Lecture · 1971 and 2025"], "u:mh-ideas": ["modern", "Lecture · 1971 and 2025"], "u:ph-self": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"], "u:ph-ai": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"], "u:ph-home": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"], "u:ph-youth": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"], "u:ph-caste": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"], "u:ph-belief": ["philtalk", "Interview · Richa Anirudh with Vikas Divyakirti"] };
   const SRCD = new Map(), SRCV = new Map(), SRCAI = new Map();
   let srcLang = read("sc_srclang") || "en";
   const tsec = (t) => { const p = t.split(":").map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; };
@@ -1941,9 +1941,9 @@ export function mount(root, opts) {
     const cl = CL.state === "synced" ? " Also saved in your Google Drive." : CL.state === "syncing" ? " Syncing with Google Drive…" : CL.state === "error" ? " Google Drive sync failed: " + CL.err : cb.cloud ? " Not synced to Google Drive yet (open Library)." : "";
     el.parentElement.title = ({ idle: "Your topics and notes are kept in this browser", saving: "Saving…", saved: "Saved in this browser. Download a backup from Library now and then.", unsafe: "Could not save in this browser (private window or blocked storage). Download a backup from Library." }[saveState] || "") + cl;
   }
-  const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; for (const t of U.topics) if (t.parent) c["u:" + t.parent] = (c["u:" + t.parent] ?? 0) + (c["u:" + t.id] ?? 0); return c; };
+  const countsByTopic = () => { const c = {}; for (const n of allNodes) if (n.k !== "hub" && n.k !== "core") c[topicOf(n)] = (c[topicOf(n)] ?? 0) + 1; for (const t of U.topics) if (t.parent) { const pk = t.parent === "phil" ? "phil" : "u:" + t.parent; c[pk] = (c[pk] ?? 0) + (c["u:" + t.id] ?? 0); } return c; };
   let tabsOpenP = "";
-  const openParent = () => { const o = S.lens === "explore" ? S.scope || "" : null, a = o && o.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === o) : null; return a ? (a.parent || a.id) : ""; };
+  const openParent = () => { const o = S.lens === "explore" ? S.scope || "" : null, a = o && o.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === o) : null; return a ? (a.parent || a.id) : o === "phil" && kidsOf("phil").length ? "phil" : ""; };
   let navOpen = false, navQ = "";
   const RECENT_KEY = "sc_recent_scopes";
   const recents = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").filter((id) => id && (topicInfo(id) || colOf(id))); } catch (e) { return []; } };
@@ -1955,7 +1955,7 @@ export function mount(root, opts) {
     const match = (t) => !q || norm(t.label).includes(q) || norm(t.full || "").includes(q);
     const tops = [{ id: "eng", label: "English", color: "#3b82c4" }, { id: "phil", label: "Philosophy", color: "#2f9e6b" }, { id: "gita", label: "Bhagavad Gita", color: "#e08a2e" }, ...U.topics.filter((t) => !t.parent).map((t) => ({ id: "u:" + t.id, label: t.label, color: t.color, key: t.id }))];
     const body = tops.map((t) => {
-      const kids = t.key ? kidsOf(t.key) : [], kk = kids.filter((c) => match({ label: c.label, full: t.label + " " + c.label }));
+      const kids = t.key ? kidsOf(t.key) : t.id === "phil" ? kidsOf("phil") : [], kk = kids.filter((c) => match({ label: c.label, full: t.label + " " + c.label }));
       if (!match(t) && !kk.length) return "";
       return row(t.id, t.label, t.color, cnt[t.id] ?? 0, "top", kids.length ? kids.length + " subtopics" : "") + (kids.length ? kk.map((c) => row("u:" + c.id, c.label, c.color, cnt["u:" + c.id] ?? 0, "kid")).join("") : "");
     }).join("");
@@ -1970,16 +1970,16 @@ export function mount(root, opts) {
   function setNav(v) { navOpen = v; if (!v) navQ = ""; renderTopics(); renderNav(); if (v) { const i = $("#gcNavQ"); if (i && !coarse) i.focus(); } }
   function renderTopics() {
     const el = $("#gcTopics"), cnt = countsByTopic(), on = S.lens === "explore" ? S.scope || "" : null;
-    const act = on && on.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === on) : null, openP = act ? (act.parent || act.id) : "";
+    const act = on && on.startsWith("u:") ? U.topics.find((x) => "u:" + x.id === on) : null, openP = act ? (act.parent || act.id) : on === "phil" && kidsOf("phil").length ? "phil" : "";
     tabsOpenP = openP;
     const tab = (id, label, extra = "", color = "", cls = "") => `<button class="tp ${cls} ${on === id ? "on" : ""}" role="tab" aria-selected="${on === id}" data-topic="${esc(id)}" ${color ? `style="--tc:${color}"` : ""}>${color ? '<i class="tdot"></i>' : ""}<span>${esc(label)}</span>${extra}</button>`;
-    const topTabs = `${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>`)}${tab("gita", "Bhagavad Gita", `<b>${cnt.gita ?? 0}</b>`)}${U.topics.filter((t) => !t.parent).map((t) => { const kids = kidsOf(t.id); return tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>${kids.length && openP !== t.id ? `<small class="kc">${kids.length} sub</small>` : ""}`, t.color) + (openP === t.id ? kids.map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(t.id)}" title="Add another subtopic, for example another culture">+ Subtopic</button>` : ""); }).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}`;
+    const topTabs = `${tab("", "All topics")}${tab("eng", "English", `<b>${cnt.eng ?? 0}</b>`)}${tab("phil", "Philosophy", `<b>${cnt.phil ?? 0}</b>${kidsOf("phil").length && openP !== "phil" ? `<small class="kc">${kidsOf("phil").length} sub</small>` : ""}`) + (openP === "phil" ? kidsOf("phil").map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") : "")}${tab("gita", "Bhagavad Gita", `<b>${cnt.gita ?? 0}</b>`)}${U.topics.filter((t) => !t.parent).map((t) => { const kids = kidsOf(t.id); return tab("u:" + t.id, t.label, `<b>${cnt["u:" + t.id] ?? 0}</b>${kids.length && openP !== t.id ? `<small class="kc">${kids.length} sub</small>` : ""}`, t.color) + (openP === t.id ? kids.map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(t.id)}" title="Add another subtopic, for example another culture">+ Subtopic</button>` : ""); }).join("")}${U.cols.map((c) => tab("c:" + c.id, c.label, '<b class="col">combined</b>')).join("")}<button class="tp add" data-act="new-topic">+ Topic</button>${U.topics.length + 2 > 1 ? '<button class="tp add" data-act="combine">Combine</button>' : ""}`;
     // compact mode (phones, folding screens, many topics): one Topics button opens a navigator; the strip only shows where you are
     const nTop = U.topics.filter((t) => !t.parent).length + 3, compact = root.clientWidth < 1000 || nTop > 7;
     const curLabel = !on ? "All topics" : colOf(on) ? colOf(on).label : (topicInfo(on)?.full ?? "Topic");
     const curTi = on && !colOf(on) ? topicInfo(on) : null;
     const navBtn = `<button class="tp navb ${navOpen ? "on" : ""}" data-act="nav" aria-expanded="${navOpen}" aria-haspopup="dialog" ${curTi?.color ? `style="--tc:${curTi.color}"` : ""}><i class="ic ic-menu"></i><span class="navl">${esc(curLabel)}</span><small class="kc">▾</small></button>`;
-    const parentRow = act ? (() => { const P = U.topics.find((x) => x.id === openP); return P ? tab("u:" + P.id, "All of " + P.label, `<b>${cnt["u:" + P.id] ?? 0}</b>`, P.color) + kidsOf(P.id).map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(P.id)}">+ Subtopic</button>` : ""; })() : (on && on.startsWith("u:") ? "" : "");
+    const parentRow = openP === "phil" ? tab("phil", "All of Philosophy", `<b>${cnt.phil ?? 0}</b>`) + kidsOf("phil").map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") : act ? (() => { const P = U.topics.find((x) => x.id === openP); return P ? tab("u:" + P.id, "All of " + P.label, `<b>${cnt["u:" + P.id] ?? 0}</b>`, P.color) + kidsOf(P.id).map((c) => tab("u:" + c.id, c.label, `<b>${cnt["u:" + c.id] ?? 0}</b>`, c.color, "sub")).join("") + `<button class="tp add sub" data-act="new-sub" data-parent="${esc(P.id)}">+ Subtopic</button>` : ""; })() : (on && on.startsWith("u:") ? "" : "");
     const compactTabs = (on ? tab("", "All topics") : "") + parentRow;
     el.innerHTML = `<div class="tp-scroll">${navBtn}${compact ? compactTabs : topTabs}</div>
       <div class="tp-right"><button class="tp tool" data-act="gita-read" id="gcGita" hidden>📖 Read the Gita</button><button class="tp tool ur" data-act="undo" id="gcUndo" aria-label="Undo" disabled>↶</button><button class="tp tool ur" data-act="redo" id="gcRedo" aria-label="Redo" disabled>↷</button><button class="tp tool" data-act="new-note">+ Note</button><button class="tp tool" data-act="connections" id="gcConn">Compare</button><button class="tp tool cl-chip" data-act="cloud-sync" id="gcCloud" hidden></button><button class="tp tool" data-act="library" id="gcLibB">Library<i class="sv" id="gcSave"></i></button></div>`;
@@ -2074,7 +2074,7 @@ export function mount(root, opts) {
     closeModal(); afterDataChange({ scope: "u:" + t.id }); toast(`Copied ${map.size} note${map.size === 1 ? "" : "s"} into “${t.label}”.`, 9000, true);
   }
   // ready-made topic packs (assets/pack-<name>.json, same format as a backup file); adding twice never duplicates
-  const PACKS = { reservation: { label: "Reservation", sub: "3 subtopics · 55 ideas from three talks by Vikas Divyakirti", scope: "u:reservation" }, "modern-history": { label: "Modern history", sub: "4 subtopics · 55 ideas from a 2-hour lecture on 1971 and Operation Sindoor", scope: "u:modern-history" } };
+  const PACKS = { reservation: { label: "Reservation", sub: "3 subtopics · 55 ideas from three talks by Vikas Divyakirti", scope: "u:reservation" }, "modern-history": { label: "Modern history", sub: "4 subtopics · 55 ideas from a 2-hour lecture on 1971 and Operation Sindoor", scope: "u:modern-history" }, "philosophy-talk": { label: "Philosophy: life, AI and society", sub: "6 subtopics · 69 ideas from a 3-hour interview, placed under Philosophy", scope: "phil" } };
   async function addPack(name, { quiet = false } = {}) {
     const meta = PACKS[name]; if (!meta) return;
     let j; try { const r = await fetch(`assets/pack-${name}.json`, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); j = await r.json(); } catch (e) { toast("Could not load the pack. Check your connection and try again."); return; }
@@ -2082,7 +2082,7 @@ export function mount(root, opts) {
     const m = mergeState(U, normalize(j), { revive: false }); U = m.state;
     closeModal(); afterDataChange({ scope: meta.scope });
     const added = U.notes.length - before;
-    if (!quiet) toast(added ? `Added “${meta.label}” with ${added} ideas in ${(j.topics || []).length - 1} subtopics. Try Compare to see how they connect.` : `“${meta.label}” is already in your topics.`, 9000, !!added);
+    if (!quiet) toast(added ? `Added “${meta.label}” with ${added} ideas in ${(j.topics || []).filter((t) => t.parent).length} subtopics. Try Compare to see how they connect.` : `“${meta.label}” is already in your topics.`, 9000, !!added);
   }
   async function submitTopic(f) {
     const name = f.name.value.trim(); if (!name) return;

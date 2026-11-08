@@ -1,0 +1,617 @@
+{
+ "v": 1,
+ "topics": [
+  {
+   "id": "ph-self",
+   "label": "Self, image and habits",
+   "color": "#b5651d",
+   "desc": "Fame, apology, Osho, meditation, daily habits and how the speaker thinks about himself",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-ai",
+   "label": "Mind, AI and machines",
+   "color": "#2a7fb8",
+   "desc": "Memory, AI tools, quantum computing, deepfakes, robots and the risks of every new technology",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-home",
+   "label": "Parenting and marriage",
+   "color": "#c2185b",
+   "desc": "Lighthouse parenting, respect at home, marriage and family",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-youth",
+   "label": "Youth, society and pressure",
+   "color": "#6a4c93",
+   "desc": "Generations, suicide as a social fact, social media, labelling and humility",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-caste",
+   "label": "Caste census and reservation",
+   "color": "#3d7a2a",
+   "desc": "Why the caste census matters, its history, sub-categories and creamy-layer ideas",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-belief",
+   "label": "Belief, astrology and reason",
+   "color": "#c9a227",
+   "desc": "Agnosticism, induction and deduction, astrology, placebo and magic",
+   "parent": "phil",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  }
+ ],
+ "notes": [
+  {
+   "id": "ph-s01",
+   "topic": "ph-self",
+   "title": "Image bigger than the person",
+   "text": "The speaker says recognition is pleasant but brings anxiety: privacy goes, someone always seems to be watching, and you feel pushed to look the way people expect. He calls it a trap that grows with your image. (≈0:01:35–0:04:33) Leads to [[You cannot satisfy everyone]].",
+   "created": 1762700000000,
+   "updated": 1762700000000
+  },
+  {
+   "id": "ph-s02",
+   "topic": "ph-self",
+   "title": "You cannot satisfy everyone",
+   "text": "Society gave him respect, so a little humiliation hurts, yet some people will always be angry. He says family, colleagues and rest keep him steady, and that he can bear criticism when he knows he was not wrong. (≈0:04:33–0:06:01) See [[Apologise when you are wrong]].",
+   "created": 1762700001000,
+   "updated": 1762700001000
+  },
+  {
+   "id": "ph-s03",
+   "topic": "ph-self",
+   "title": "Apologise when you are wrong",
+   "text": "The interviewer says the hardest thing is to apologise. The speaker holds that if you are wrong you should say so, but that he stands by what he said in the Sita clip, while apologising to everyone who was hurt. (≈0:06:01–0:07:34 and 0:07:34–0:09:05) Context in [[Clips lose the last sentence]].",
+   "created": 1762700002000,
+   "updated": 1762700002000
+  },
+  {
+   "id": "ph-s04",
+   "topic": "ph-self",
+   "title": "Clips lose the last sentence",
+   "text": "He says the viral clip left out the sentence that these views belong to the poets, not to Ram, and that a classroom talk meant for UPSC became public with no context. (≈0:07:34–0:09:05) Compare [[Social media never forgets]].",
+   "created": 1762700003000,
+   "updated": 1762700003000
+  },
+  {
+   "id": "ph-s05",
+   "topic": "ph-self",
+   "title": "Basements, drills and safety",
+   "text": "On the institute accident he says the building had seven exits and was in a commercial mall, but he accepts an accident can happen in ways nobody imagined. Basements are now closed to classes and firefighters run drills with students. (≈0:07:34–0:10:34) See [[Apologise when you are wrong]].",
+   "created": 1762700004000,
+   "updated": 1762700004000
+  },
+  {
+   "id": "ph-s06",
+   "topic": "ph-self",
+   "title": "Staying off social media",
+   "text": "He left Twitter seven years ago and says Facebook and Twitter swallow an hour that could go to books, films or family. His Instagram is run by his team, who press him to post a photo every two or three months. (≈0:10:34–0:13:35)",
+   "created": 1762700005000,
+   "updated": 1762700005000
+  },
+  {
+   "id": "ph-s07",
+   "topic": "ph-self",
+   "title": "Osho as the turning point",
+   "text": "At 17, on a month-long government water-audit project in what is now Chhattisgarh, he read the Osho books he had carried. He calls Osho the turning point from a non-academic reader to someone with academic curiosity. (≈1:04:34–1:07:34) Next: [[Take the best, no chains]].",
+   "created": 1762700006000,
+   "updated": 1762700006000
+  },
+  {
+   "id": "ph-s08",
+   "topic": "ph-self",
+   "title": "Take the best, no chains",
+   "text": "After Osho he asked questions of everyone, including RSS-linked hostel mates and leftist friends, and concluded no ideology is complete. He then read most Western philosophers, sociology and literature. (≈1:06:00–1:09:04) See [[Osho and the many meditations]].",
+   "created": 1762700007000,
+   "updated": 1762700007000
+  },
+  {
+   "id": "ph-s09",
+   "topic": "ph-self",
+   "title": "Osho and the many meditations",
+   "text": "He compares dynamic meditation, Sudarshan Kriya, Nada Brahma and Vipassana, and likens suppressed anger to soda in a corked bottle. He cites neuroscience (EEG, functional MRI) that meditation improves attention and memory. He says he has only practised pranayama lately. (≈1:07:34–1:13:33)",
+   "created": 1762700008000,
+   "updated": 1762700008000
+  },
+  {
+   "id": "ph-s10",
+   "topic": "ph-self",
+   "title": "Time, sleep and fitness",
+   "text": "He sleeps late (about 1 a.m. to 8:30 a.m.), spends about two hours daily on strength, yoga and pranayama, and walks a lot. He says vegetarians in India often get too little protein and that muscles and bones weaken after 60. His office has about 2,000 staff and he is stepping back from the CEO role. (≈1:13:33–1:18:04) See [[Me time, notes and the smart ring]].",
+   "created": 1762700009000,
+   "updated": 1762700009000
+  },
+  {
+   "id": "ph-s11",
+   "topic": "ph-self",
+   "title": "Me time, notes and the smart ring",
+   "text": "He keeps two hours of 'me time' at night for reading, poetry and notes, with thousands of notes and ideas for about 1,000 films on his phone. A smart ring shows he is relaxed 60 to 70 percent of the time. (≈1:18:04–1:21:01)",
+   "created": 1762700010000,
+   "updated": 1762700010000
+  },
+  {
+   "id": "ph-s12",
+   "topic": "ph-self",
+   "title": "Put yourself in their shoes",
+   "text": "Philosophy and psychology taught him to see an angry person's side: a son resented his father's crooked walk until he wore his shoes and felt the nail the father endured to save money. He says most fights end when you stand on the other side. (≈1:21:01–1:24:05)",
+   "created": 1762700011000,
+   "updated": 1762700011000
+  },
+  {
+   "id": "ph-s13",
+   "topic": "ph-self",
+   "title": "Rarely angry",
+   "text": "In 10 to 20 years he cannot recall scolding a staff member. When salaries were once delayed by a bank error, he only ordered that no one in finance leaves until all staff are paid. (≈1:22:34–1:24:05) See [[Put yourself in their shoes]].",
+   "created": 1762700012000,
+   "updated": 1762700012000
+  },
+  {
+   "id": "ph-s14",
+   "topic": "ph-self",
+   "title": "Take risks, jump",
+   "text": "He has skydived and paraglided and says he is comfortable with risk. Quoting Osho's 'jump into the unknown', he says the biggest risk is taking none, because anything good comes only with some risk. (≈1:51:03–1:52:31)",
+   "created": 1762700013000,
+   "updated": 1762700013000
+  },
+  {
+   "id": "ph-s15",
+   "topic": "ph-self",
+   "title": "Saints, vampires and the 90 percent",
+   "text": "Using Freud as he explains him, he says about 90 percent of people sit between good and bad, 5 percent are saints and 5 percent vampires, in every field including civil service and journalism. (≈2:22:34–2:25:31) Compare [[Humble because of hardship]].",
+   "created": 1762700014000,
+   "updated": 1762700014000
+  },
+  {
+   "id": "ph-s16",
+   "topic": "ph-self",
+   "title": "Mantra and the image gap",
+   "text": "His mantra: if nothing happens, there will be experience. He wants the gap between his image and himself to be as small as possible and says an artist's worst failing is to lie for praise. (≈2:52:31–2:55:36) Echoes [[Image bigger than the person]].",
+   "created": 1762700015000,
+   "updated": 1762700015000
+  },
+  {
+   "id": "ph-a01",
+   "topic": "ph-ai",
+   "title": "Memory versus smart devices",
+   "text": "He asks whether the test of remembering tables to 20 still matters. For his son a calculator or phone is enough, and the brain keeps what it finds important. He admits memory improves with practice and worries about small losses like an OTP. (≈0:16:33–0:27:02) See [[Relevance versus jobs]].",
+   "created": 1762700016000,
+   "updated": 1762700016000
+  },
+  {
+   "id": "ph-a02",
+   "topic": "ph-ai",
+   "title": "Relevance versus jobs",
+   "text": "He separates relevance from jobs: lakhs and crores of jobs may go and new ones appear, as with computers, but AI is riskier. His advice is to go with a new technology, not avoid it. (≈0:27:02–0:30:00) Next: [[AI as a reading assistant]].",
+   "created": 1762700017000,
+   "updated": 1762700017000
+  },
+  {
+   "id": "ph-a03",
+   "topic": "ph-ai",
+   "title": "AI as a reading assistant",
+   "text": "He asks AI for the ten best books on a subject and a 5,000-word summary in Hindi with examples, by voice, and says he almost does not need to read whole books now. (≈0:30:00–0:33:02) See [[Deep research in minutes]].",
+   "created": 1762700018000,
+   "updated": 1762700018000
+  },
+  {
+   "id": "ph-a04",
+   "topic": "ph-ai",
+   "title": "A bedtime story from a chatbot",
+   "text": "A two-year-old who thought ghosts were hats got a voice-AI story to ease her fear, ending with 'Tuppy' repeated three times; the child loved it. (≈0:30:00–0:31:32)",
+   "created": 1762700019000,
+   "updated": 1762700019000
+  },
+  {
+   "id": "ph-a05",
+   "topic": "ph-ai",
+   "title": "Deep research in minutes",
+   "text": "His 1999 PhD took two years of finding books; now deep-search mode reads many websites and can fetch the original 1902 Kolhapur notification and make comparison charts in seconds. (≈0:31:32–0:36:02) Compare [[A podcast from your own notes]].",
+   "created": 1762700020000,
+   "updated": 1762700020000
+  },
+  {
+   "id": "ph-a06",
+   "topic": "ph-ai",
+   "title": "A podcast from your own notes",
+   "text": "He uploads an SOP document to a notebook-type AI tool and has it turned into a two-voice podcast, then explains how the interviewer can ask AI what questions were not asked before. (≈0:36:02–0:39:05)",
+   "created": 1762700021000,
+   "updated": 1762700021000
+  },
+  {
+   "id": "ph-a07",
+   "topic": "ph-ai",
+   "title": "AI and medical advice",
+   "text": "He relays stories of a woman whose chatbot told her to call an ambulance for stomach pain and a friend whose test reports gave the same advice as the doctor. He warns it lacks personal attention, but says India has few doctors. These are secondhand stories. (≈0:37:35–0:42:02) Next: [[Quantum computing and medicine]].",
+   "created": 1762700022000,
+   "updated": 1762700022000
+  },
+  {
+   "id": "ph-a08",
+   "topic": "ph-ai",
+   "title": "Quantum computing and medicine",
+   "text": "He describes simulated testing on digital human models and Google's quantum chip that, as he says, does in minutes what the best supercomputer needs ten thousand years for. He expects customised medicines in 15 to 20 years. Treat the figures as his. (≈0:42:02–0:46:32) See [[GPUs and Nvidia]].",
+   "created": 1762700023000,
+   "updated": 1762700023000
+  },
+  {
+   "id": "ph-a09",
+   "topic": "ph-ai",
+   "title": "GPUs and Nvidia",
+   "text": "He says whoever has the most GPUs leads in AI, that Nvidia became the world's largest company, and that the US restricts GPU sales to China. (≈0:43:30–0:45:01) Leads to [[India behind in AI]].",
+   "created": 1762700024000,
+   "updated": 1762700024000
+  },
+  {
+   "id": "ph-a10",
+   "topic": "ph-ai",
+   "title": "India behind in AI",
+   "text": "He says India is far behind, has a fund and is trying to build a GPU, while China leads along with the US and Gulf countries are investing. He says every country has to try. (≈0:45:01–0:46:32)",
+   "created": 1762700025000,
+   "updated": 1762700025000
+  },
+  {
+   "id": "ph-a11",
+   "topic": "ph-ai",
+   "title": "Deepfakes and digital arrest",
+   "text": "He shows a team-made video of himself that is not him and warns of voice cloning, fake photos and the 'digital arrest' scams that target elders. He calls this a transition period when crime rises. (≈0:46:32–0:51:00) See [[AI and creativity]].",
+   "created": 1762700026000,
+   "updated": 1762700026000
+  },
+  {
+   "id": "ph-a12",
+   "topic": "ph-ai",
+   "title": "AI and creativity",
+   "text": "AI makes paintings, music, logos and scripts, and he says it can remix many spy novels into a new one with changed names. He thinks it threatens the less creative first. (≈0:51:00–0:54:00) Next: [[Railway engine and technology risk]].",
+   "created": 1762700027000,
+   "updated": 1762700027000
+  },
+  {
+   "id": "ph-a13",
+   "topic": "ph-ai",
+   "title": "Railway engine and technology risk",
+   "text": "He compares AI to a railway engine: useful, but deadly if you stand in front of it. Planes and space flight cost lives too, yet we kept going. He says mathematics and algorithms fall first and philosophy takes longer. (≈0:52:31–0:55:33) See [[Humanoid robot teachers]].",
+   "created": 1762700028000,
+   "updated": 1762700028000
+  },
+  {
+   "id": "ph-a14",
+   "topic": "ph-ai",
+   "title": "Humanoid robot teachers",
+   "text": "He imagines humanoid robots with lab-grown skin, AI and long-life batteries teaching maths in every village school, in any language, and not tired. The interviewer answers that books and the page-turning feeling have an emotional touch. (≈0:55:33–0:58:35)",
+   "created": 1762700029000,
+   "updated": 1762700029000
+  },
+  {
+   "id": "ph-a15",
+   "topic": "ph-ai",
+   "title": "Loving our devices",
+   "text": "He notes people personalise phones with skins and photos and expects the same affection for household robots; his family's cleaning robots have names. (≈0:58:35–1:00:05) Compare [[Humanoid robot teachers]].",
+   "created": 1762700030000,
+   "updated": 1762700030000
+  },
+  {
+   "id": "ph-h01",
+   "topic": "ph-home",
+   "title": "The hammer story",
+   "text": "His young son once hit his knee with a hammer while trying to be a carpenter. He joked instead of scolding, and the son remembers that he did not make him feel wrong. (≈1:24:05–1:25:33)",
+   "created": 1762700031000,
+   "updated": 1762700031000
+  },
+  {
+   "id": "ph-h02",
+   "topic": "ph-home",
+   "title": "Lighthouse parenting",
+   "text": "He rejects helicopter parenting (hovering) and neglect. Lighthouse parenting shines a light and does not judge the ship's route: suggestions, not orders. His 18-plus son still consults them. (≈1:27:04–1:30:06) Compare [[Respect is non-negotiable]].",
+   "created": 1762700032000,
+   "updated": 1762700032000
+  },
+  {
+   "id": "ph-h03",
+   "topic": "ph-home",
+   "title": "Respect is non-negotiable",
+   "text": "He and his brothers did chores as children; his son needed fewer survival skills because the family was secure, but the unwritten rule at home is that he touches the feet of the driver, guard and cook each morning. He also notes parents who feed children in front of tablets. (≈1:28:30–1:31:32)",
+   "created": 1762700033000,
+   "updated": 1762700033000
+  },
+  {
+   "id": "ph-h04",
+   "topic": "ph-home",
+   "title": "Friends with my son",
+   "text": "He is closer to a friend than a disciplinarian and was strict only a few times. Once a teacher complained about his son and the other child; he says he apologised but that boys who never fight will not grow up. (≈1:31:32–1:34:30) See [[Lighthouse parenting]].",
+   "created": 1762700034000,
+   "updated": 1762700034000
+  },
+  {
+   "id": "ph-h05",
+   "topic": "ph-home",
+   "title": "I was no angel either",
+   "text": "He says what he did in sixth grade his son does in eighth, and he cannot expect an angel. Still, he is glad the benchmark is a little higher than his. (≈1:34:30–1:36:00)",
+   "created": 1762700035000,
+   "updated": 1762700035000
+  },
+  {
+   "id": "ph-h06",
+   "topic": "ph-home",
+   "title": "Marriage between two personalities",
+   "text": "He says a couple that claims perfect understanding is lying: in the past wives gave up their personalities and so marriages looked stable. Today two equal people will clash, and his own marriage began when both were young, with their ideas not yet formed. (≈2:13:36–2:18:06)",
+   "created": 1762700036000,
+   "updated": 1762700036000
+  },
+  {
+   "id": "ph-h07",
+   "topic": "ph-home",
+   "title": "Shared tastes and healthy differences",
+   "text": "A marriage works better when hobbies, food and travel overlap, but some difference is needed too. A sign of trouble is when someone says they are bored with the spouse. (≈2:18:06–2:21:06) Compare [[Marriage between two personalities]].",
+   "created": 1762700037000,
+   "updated": 1762700037000
+  },
+  {
+   "id": "ph-y01",
+   "topic": "ph-youth",
+   "title": "Every generation praises its own",
+   "text": "He quotes Premchand: the pleasures of the past and the sorrow of the present belong to every generation, and every generation thinks the next is ruined. He thinks today's youth are smart. (≈0:13:35–0:18:05)",
+   "created": 1762700038000,
+   "updated": 1762700038000
+  },
+  {
+   "id": "ph-y02",
+   "topic": "ph-youth",
+   "title": "Kids less prejudiced than us",
+   "text": "He says children in good city schools are less casteist, sexist and communal than his generation, whose prejudices sit in the subconscious. They are global in values. (≈0:19:30–0:24:02) See [[Every generation praises its own]].",
+   "created": 1762700039000,
+   "updated": 1762700039000
+  },
+  {
+   "id": "ph-y03",
+   "topic": "ph-youth",
+   "title": "Boys and girls can be friends",
+   "text": "In his school boys and girls were kept apart and friendship across the line was awkward; today's children manage it better. (≈0:16:33–0:18:05)",
+   "created": 1762700040000,
+   "updated": 1762700040000
+  },
+  {
+   "id": "ph-y04",
+   "topic": "ph-youth",
+   "title": "Suicide as a social fact",
+   "text": "He cites Durkheim's study of 26,000 suicides to say suicide is not only individual or psychological: rates are stable in each city and differ by marriage and religion. Mental health is one factor, not the whole story. (≈1:36:00–1:39:04) Next: [[Coping with the losers' side]].",
+   "created": 1762700041000,
+   "updated": 1762700041000
+  },
+  {
+   "id": "ph-y05",
+   "topic": "ph-youth",
+   "title": "Coping with the losers' side",
+   "text": "Of millions who sit exams only a few thousand succeed; the real question is how people cope with not succeeding. Biology, parental history and upbringing all play a part. (≈1:37:32–1:40:34)",
+   "created": 1762700042000,
+   "updated": 1762700042000
+  },
+  {
+   "id": "ph-y06",
+   "topic": "ph-youth",
+   "title": "Protected children, fragile adults",
+   "text": "A 17-year-old who was once a working adult is now treated as a child. He says protected children never get the chance to wrestle with life and so cope less well. (≈1:39:04–1:42:07)",
+   "created": 1762700043000,
+   "updated": 1762700043000
+  },
+  {
+   "id": "ph-y07",
+   "topic": "ph-youth",
+   "title": "Social media never forgets",
+   "text": "Earlier an insult in a field ended with a few slaps; now a dislike or screenshot is visible to the world, permanent and spreading. Bullying is recorded. (≈1:42:07–1:43:32) See [[Labelling and the thief in all of us]].",
+   "created": 1762700044000,
+   "updated": 1762700044000
+  },
+  {
+   "id": "ph-y08",
+   "topic": "ph-youth",
+   "title": "Labelling and the thief in all of us",
+   "text": "Labelling theory warns that a child tagged a thief stays one. He asks 500 students who never stole anything and says the only difference is who got caught. (≈1:43:32–1:45:03)",
+   "created": 1762700045000,
+   "updated": 1762700045000
+  },
+  {
+   "id": "ph-y09",
+   "topic": "ph-youth",
+   "title": "Followers, likes and real friends",
+   "text": "He recalls an influencer under pressure to reach a million followers. He says real friends are three or four, plus a few family members, and fake followers will not help in a crisis. (≈1:45:03–1:46:33)",
+   "created": 1762700046000,
+   "updated": 1762700046000
+  },
+  {
+   "id": "ph-y10",
+   "topic": "ph-youth",
+   "title": "The phone as a double-edged sword",
+   "text": "Children need phones for assignments, yet phones hide passwords and secrets. He says parents need training as well. (≈1:46:33–1:48:03) Compare [[Lighthouse parenting]].",
+   "created": 1762700047000,
+   "updated": 1762700047000
+  },
+  {
+   "id": "ph-y11",
+   "topic": "ph-youth",
+   "title": "Humble because of hardship",
+   "text": "He says those who come up through hardship are often humble and the proud ones are few in every field, from civil service to cinema. (≈2:19:37–2:22:34) See [[Saints, vampires and the 90 percent]].",
+   "created": 1762700048000,
+   "updated": 1762700048000
+  },
+  {
+   "id": "ph-y12",
+   "topic": "ph-youth",
+   "title": "How civil service changed",
+   "text": "He says power once held by the collector has been split by the Criminal Procedure Code, Panchayati Raj and local bodies. About 5 percent in any field are very honest. (≈2:22:34–2:25:31)",
+   "created": 1762700049000,
+   "updated": 1762700049000
+  },
+  {
+   "id": "ph-y13",
+   "topic": "ph-youth",
+   "title": "Why long videos work",
+   "text": "His long videos get tens of millions of views, so he thinks most viewers are not UPSC aspirants. He cites comments from a pregnant woman and a mother whose child quietens at his voice. (≈2:28:33–2:31:31)",
+   "created": 1762700050000,
+   "updated": 1762700050000
+  },
+  {
+   "id": "ph-c01",
+   "topic": "ph-caste",
+   "title": "Why a caste census",
+   "text": "He compares a check-up: a census is a body scan. Without data on caste, religion, poverty and jobs you cannot make good policy. He says the government's decision was right even if forced. (≈2:31:31–2:34:35) Next: [[Centre versus state: census or survey]].",
+   "created": 1762700051000,
+   "updated": 1762700051000
+  },
+  {
+   "id": "ph-c02",
+   "topic": "ph-caste",
+   "title": "Centre versus state: census or survey",
+   "text": "Census is a Union subject (Seventh Schedule, entry 69) and states ran surveys instead. Justice Khanna's bench let the state go ahead with its Bihar survey. (≈2:33:01–2:36:04) See [[Why a caste census]].",
+   "created": 1762700052000,
+   "updated": 1762700052000
+  },
+  {
+   "id": "ph-c03",
+   "topic": "ph-caste",
+   "title": "Caste politics against religion politics",
+   "text": "He says the Congress believes caste politics answers religious politics, while the BJP resisted until the OBC vote, about 60 percent of the population, forced a change. (≈2:34:35–2:36:04)",
+   "created": 1762700053000,
+   "updated": 1762700053000
+  },
+  {
+   "id": "ph-c04",
+   "topic": "ph-caste",
+   "title": "A short history of the caste count",
+   "text": "The Kalelkar commission (1953) recommended a caste count in 1961 but Nehru did not act. The SECC of 2011 data was never fully released. (≈2:36:04–2:37:32) Compare [[Kolhapur 1902 and Mysore]].",
+   "created": 1762700054000,
+   "updated": 1762700054000
+  },
+  {
+   "id": "ph-c05",
+   "topic": "ph-caste",
+   "title": "Kolhapur 1902 and Mysore",
+   "text": "In 1902 Kolhapur reserved half the seats for non-Brahmins after data showed Brahmins were 3 percent of the population and 60 percent of the administration. Mysore's 1911 census led to a committee and a 25 percent quota. (≈2:37:32–2:39:04)",
+   "created": 1762700055000,
+   "updated": 1762700055000
+  },
+  {
+   "id": "ph-c06",
+   "topic": "ph-caste",
+   "title": "Sub-categories within OBC and SC",
+   "text": "Rohini Commission's report on OBC sub-groups is not public. He notes that the Supreme Court allowed sub-classification for SC and ST in 2024, reversing the 2005 Chinnaiah ruling. Details are as he states them. (≈2:39:04–2:40:36) See [[Why a caste census]].",
+   "created": 1762700056000,
+   "updated": 1762700056000
+  },
+  {
+   "id": "ph-c07",
+   "topic": "ph-caste",
+   "title": "Caste among Muslims",
+   "text": "He says state surveys show that around 80 percent of Muslims fall under OBC and that caste exists among Muslims and Christians too. Diagnosis comes before treatment. (≈2:40:36–2:42:00)",
+   "created": 1762700057000,
+   "updated": 1762700057000
+  },
+  {
+   "id": "ph-c08",
+   "topic": "ph-caste",
+   "title": "Reservation for one generation",
+   "text": "He says he supports reservation fully but wants the same family not to keep benefiting: once a person reaches a senior post, their child should move aside for others. (≈2:42:00–2:43:33) Compare [[Why a caste census]].",
+   "created": 1762700058000,
+   "updated": 1762700058000
+  },
+  {
+   "id": "ph-b01",
+   "topic": "ph-belief",
+   "title": "Agnosticism",
+   "text": "He says if you believe, do not claim to know; if you do not, do not claim either. He calls this agnosticism and cites Kant for the idea that no one knows. (≈1:54:04–1:55:30) Next: [[Religion in practice]].",
+   "created": 1762700059000,
+   "updated": 1762700059000
+  },
+  {
+   "id": "ph-b02",
+   "topic": "ph-belief",
+   "title": "Religion in practice",
+   "text": "He does not worship himself and says he sits in family prayers out of respect for his wife's faith. (≈1:55:30–1:57:03)",
+   "created": 1762700060000,
+   "updated": 1762700060000
+  },
+  {
+   "id": "ph-b03",
+   "topic": "ph-belief",
+   "title": "Curious about astrology",
+   "text": "He says astrology is not provably true, but he is not saying it is totally wrong. He wants to study it properly and compares it with medicine, which also works on statistics of many people. (≈1:57:03–1:58:33) See [[Astrology is induction]].",
+   "created": 1762700061000,
+   "updated": 1762700061000
+  },
+  {
+   "id": "ph-b04",
+   "topic": "ph-belief",
+   "title": "Induction and deduction",
+   "text": "Philosophy has two kinds of reasoning: induction (from many observed cases) and deduction (from a general statement). (≈1:58:33–2:00:05) Used in [[Astrology is induction]].",
+   "created": 1762700062000,
+   "updated": 1762700062000
+  },
+  {
+   "id": "ph-b05",
+   "topic": "ph-belief",
+   "title": "Astrology is induction",
+   "text": "He guesses astrology grew from centuries of noted cases linking planetary positions at birth to later events. That gives estimates, not certainty, and old records were not objective. These are his suppositions. (≈2:00:05–2:01:31) See [[Induction and deduction]].",
+   "created": 1762700063000,
+   "updated": 1762700063000
+  },
+  {
+   "id": "ph-b06",
+   "topic": "ph-belief",
+   "title": "The Narlikar challenge",
+   "text": "As the speaker tells it, scientist Narlikar challenged astrologers to test their predictions objectively and none took part. The name is garbled in the transcript. (≈2:01:31–2:03:07)",
+   "created": 1762700064000,
+   "updated": 1762700064000
+  },
+  {
+   "id": "ph-b07",
+   "topic": "ph-belief",
+   "title": "Right once, wrong once",
+   "text": "He has met astrologers who were astonishingly accurate and others whose predictions failed. A friend in the IAS was told he would rank in the top ten, which he did not. He sees both as chance. (≈2:03:07–2:04:31)",
+   "created": 1762700065000,
+   "updated": 1762700065000
+  },
+  {
+   "id": "ph-b08",
+   "topic": "ph-belief",
+   "title": "Placebo and the light switch",
+   "text": "He calls astrology a placebo: a child thinks pressing a button is magic until they learn the connection between the electrons and the bulb. A miracle lasts only until there is a scientific explanation. (≈2:04:31–2:06:08)",
+   "created": 1762700066000,
+   "updated": 1762700066000
+  },
+  {
+   "id": "ph-b09",
+   "topic": "ph-belief",
+   "title": "The monkey and the mirror",
+   "text": "A monkey in front of a mirror thinks another monkey lives behind it and fights. Without understanding the mechanism it is a miracle. (≈2:06:08–2:07:32) See [[Placebo and the light switch]].",
+   "created": 1762700067000,
+   "updated": 1762700067000
+  },
+  {
+   "id": "ph-b10",
+   "topic": "ph-belief",
+   "title": "Magic and mentalism as art",
+   "text": "He says he learned the tricks and that nobody can read minds or open a phone password. Magic is a beautiful art, like Suhani's, not divine intervention, and videos are edited. (≈2:06:08–2:10:34)",
+   "created": 1762700068000,
+   "updated": 1762700068000
+  }
+ ],
+ "bridges": [],
+ "dismissed": [],
+ "cols": [],
+ "gone": {}
+}
