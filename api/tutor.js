@@ -13,7 +13,36 @@ function equal(a,b){
 function cleanModel(v){return String(v||'').trim().replace(/[^a-zA-Z0-9._:/-]/g,'').slice(0,120)}
 function askPayload(body){
   const q=String(body?.question||'').slice(0,500);
-  const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,14).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,300)}`).join('\n');
+  const ctx=(Array.isArray(body?.context)?body.context:[]).slice(0,16).map((c,i)=>`[${i+1}] ${String(c?.l||'').slice(0,90)} (${String(c?.k||'').slice(0,20)}): ${String(c?.d||'').slice(0,560)}`).join('\n');
+  if(String(body?.topic||'')==='judge'){
+    return {
+      mode:'ask',
+      max:1800,
+      answer:q||'judge',
+      system:'You compare ideas that come from different topics of a personal knowledge graph. Each numbered note is "Pair N: A <-> B" followed by the text of A and of B. For each pair decide: "similar" (the same or a closely parallel idea), "contradicts" (they make claims that cannot both be true, or pull in opposite directions), "complements" (related, neither similar nor opposed) or "unrelated". Use ONLY the text given. Do not invent facts. Be careful: sharing words is not the same as agreeing. Return JSON only: {"answer":"one sentence overall","verdicts":[{"i":1,"verdict":"similar|contradicts|complements|unrelated","why":"under 25 words"}]}',
+      user:`Pairs:\n${ctx}`
+    };
+  }
+  if(String(body?.topic||'')==='discover'){
+    const want=String(body?.topicName||'')==='contradict'?'CONTRADICT each other (opposite claims or opposite directions)':'are SIMILAR (the same or closely parallel idea)';
+    return {
+      mode:'ask',
+      max:1800,
+      answer:q||'discover',
+      system:'You search a personal knowledge graph for relations between topics. The numbered notes come from several topics (the topic is in brackets). Find up to 6 pairs of notes from DIFFERENT topics that '+want+'. Use ONLY the notes given; never invent. Prefer fewer, solid pairs over many weak ones. Return JSON only: {"answer":"one sentence overall","pairs":[{"a":1,"b":5,"why":"under 25 words"}]}',
+      user:`Notes:\n${ctx}`
+    };
+  }
+  if(String(body?.topic||'')==='notes'){
+    const name=String(body?.topicName||'').replace(/[^\p{L}\p{N} ._-]/gu,'').slice(0,40)||'the user\'s notes';
+    return {
+      mode:'ask',
+      max:1400,
+      answer:q,
+      system:'You help a researcher think across their own notes in a personal knowledge graph ('+name+'). Use ONLY the numbered notes provided; they are the user\'s own words and may include their own claims. If they do not cover the question, say so briefly. Never invent facts, sources or quotations. When asked to connect ideas, name the link, say what is speculative, and keep it under 140 words. Cite notes as [1], [2]. Return JSON only: {"answer":"...","bn":""}',
+      user:`Question: ${q}\n\nNotes:\n${ctx}`
+    };
+  }
   if(String(body?.topic||'')==='philosophy')return {
     mode:'ask',
     max:1600,
@@ -40,8 +69,12 @@ function promptPayload(body){
 }
 function safeResult(obj,mode){
   if(mode==='ask'){
-    if(!obj||!obj.answer)throw new Error('Invalid AI answer');
-    return {answer:String(obj.answer).slice(0,1400),bn:String(obj.bn||'').slice(0,900)};
+    if(!obj||(!obj.answer&&!obj.verdicts&&!obj.pairs))throw new Error('Invalid AI answer');
+    const out={answer:String(obj.answer||'').slice(0,1400),bn:String(obj.bn||'').slice(0,900)};
+    const V=['similar','contradicts','complements','unrelated'];
+    if(Array.isArray(obj.verdicts))out.verdicts=obj.verdicts.slice(0,16).map(v=>({i:Math.round(+v?.i)||0,verdict:V.includes(String(v?.verdict))?String(v.verdict):'unrelated',why:String(v?.why||'').slice(0,220)})).filter(v=>v.i>0);
+    if(Array.isArray(obj.pairs))out.pairs=obj.pairs.slice(0,8).map(v=>({a:Math.round(+v?.a)||0,b:Math.round(+v?.b)||0,why:String(v?.why||'').slice(0,220)})).filter(v=>v.a>0&&v.b>0&&v.a!==v.b);
+    return out;
   }
   if(!obj||!obj.good||!obj.next)throw new Error('Invalid AI feedback');
   return {
