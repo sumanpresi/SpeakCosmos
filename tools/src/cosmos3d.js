@@ -235,8 +235,10 @@ export function mount(root, opts) {
   const TCOL = { eng: "#3b82c4", phil: "#2f9e6b", gita: "#e08a2e" };
   const topicCol = (t) => { const i = topicInfo(t); return i?.color || TCOL[t] || "#8a7f70"; };
   const splitOn = () => (S.focus ? !S.scope : !S.scope && S.split && S.lens === "explore");
+  // a parent topic that only holds subtopics has no cloud of its own: it is just the name over its subtopics
+  const emptyParent = (t) => { const k = t && t.startsWith("u:") ? t.slice(2) : null; return !!k && kidsOf(k).length > 0 && !U.notes.some((x) => x.topic === k); };
   function layoutIslands(list) {
-    islandOf.clear(); islandR.clear();
+    islandOf.clear(); islandR.clear(); list = list.filter((t) => !emptyParent(t));
     const rad = new Map(list.map((t) => [t, 40]));
     for (const n of allNodes) { const t = topicOf(n); if (rad.has(t) && n.k !== "core") { const q = n.q || n.p; rad.set(t, Math.max(rad.get(t), Math.hypot(q[0], q[1] * ysOf(t), q[2]))); } }
     const m = list.length, rs = list.map((t) => rad.get(t));
@@ -515,7 +517,7 @@ export function mount(root, opts) {
     const vk = visibleKinds();
     const nodes = [];
     const fk = S.focus;
-    for (const n of allNodes) { if (fk && !(fk.keep.has(n.id) || (n.k === "hub" && fk.hubs.has(n.id)))) continue; if (n.k === "core" ? (!SS || SS.has("eng")) : vk.has(n.k) && inScope(n)) nodes.push(gnode(n)); }
+    for (const n of allNodes) { if (n.k === "hub" && n.hubOf && emptyParent(n.t)) continue; if (fk && !(fk.keep.has(n.id) || (n.k === "hub" && fk.hubs.has(n.id)))) continue; if (n.k === "core" ? (!SS || SS.has("eng")) : vk.has(n.k) && inScope(n)) nodes.push(gnode(n)); }
     const shown = new Set(nodes.map((n) => n.id));
     const egoId = S.mode === "focus" && S.selected && !S.highlight && shown.has(S.selected) ? S.selected : null;
     if (egoId) {
@@ -1824,6 +1826,7 @@ export function mount(root, opts) {
         <div class="swatches" role="radiogroup" aria-label="Colour">${COLORS.map((c, i) => `<label><input type="radio" name="color" value="${c}" ${i === U.topics.length % COLORS.length ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>
         <label>Paste text <small>optional, becomes small notes</small><textarea name="paste" rows="5" placeholder="Paste notes, a transcript or an article…"></textarea></label>
         <label>Or upload files <small>.txt .md, or a backup .json</small><input type="file" name="files" accept=".txt,.md,.markdown,.json,text/plain" multiple></label>
+        ${P ? "" : `<div class="packs"><small>Ready-made</small>${Object.entries(PACKS).map(([k, v]) => `<button type="button" class="pack" data-act="add-pack" data-pack="${k}"><b>${esc(v.label)}</b><span>${esc(v.sub)}</span></button>`).join("")}</div>`}
         <div class="mf"><button type="button" class="gcbtn" data-m="close">Cancel</button><button class="gcbtn primary" type="submit">${P ? "Create subtopic" : "Create topic"}</button></div>
       </form>`, "wide");
   }
@@ -1857,6 +1860,17 @@ export function mount(root, opts) {
     const now = Date.now(); const map = new Map();
     for (const x of U.notes.filter((x) => x.topic === id)) { const c = { ...x, id: newId("n"), topic: t.id, created: now, updated: now }; delete c.p; map.set(x.id, c.id); U.notes.push(c); }
     closeModal(); afterDataChange({ scope: "u:" + t.id }); toast(`Copied ${map.size} note${map.size === 1 ? "" : "s"} into “${t.label}”.`, 9000, true);
+  }
+  // ready-made topic packs (assets/pack-<name>.json, same format as a backup file); adding twice never duplicates
+  const PACKS = { reservation: { label: "Reservation", sub: "3 subtopics · 55 ideas from three talks by Vikas Divyakirti", scope: "u:reservation" } };
+  async function addPack(name, { quiet = false } = {}) {
+    const meta = PACKS[name]; if (!meta) return;
+    let j; try { const r = await fetch(`assets/pack-${name}.json`, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); j = await r.json(); } catch (e) { toast("Could not load the pack. Check your connection and try again."); return; }
+    const before = U.notes.length; checkpoint("add " + meta.label);
+    const m = mergeState(U, normalize(j), { revive: false }); U = m.state;
+    closeModal(); afterDataChange({ scope: meta.scope });
+    const added = U.notes.length - before;
+    if (!quiet) toast(added ? `Added “${meta.label}” with ${added} ideas in ${(j.topics || []).length - 1} subtopics. Try Compare to see how they connect.` : `“${meta.label}” is already in your topics.`, 9000, !!added);
   }
   async function submitTopic(f) {
     const name = f.name.value.trim(); if (!name) return;
@@ -2267,7 +2281,7 @@ export function mount(root, opts) {
   const strip = $("#gcTopics");
   strip.addEventListener("click", (e) => { const t = e.target.closest("[data-topic]"); if (t) { if (S.lens !== "explore") setLens("explore"); setScope(t.dataset.topic || null); renderEmpty(); } });
   const actions = {
-    "new-topic": () => newTopicModal(), "new-sub": (b) => { closeModal(); newTopicModal(b.dataset.parent); }, "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
+    "new-topic": () => newTopicModal(), "add-pack": (b) => addPack(b.dataset.pack), "new-sub": (b) => { closeModal(); newTopicModal(b.dataset.parent); }, "combine": () => combineModal(), "library": () => { libraryModal(); refreshRP(); }, "rp-restore": (b) => { const p = RP[+b.dataset.i]; if (!p) return; if (!confirm("Go back to the copy from " + new Date(p.at).toLocaleString() + " (" + p.label + ")? Anything newer is kept in a restore point, and you can undo this.")) return; pushRestorePoint("Before going back"); checkpoint("go back to a restore point"); U = restoreSnapshot(U, p.state); closeModal(); afterDataChange(); toast("Restored. You can undo this.", 10000, true); },
     "connections": () => { if (S.tool === "conn") { showPop("conn"); return; } const k = topicKeyOf(S.scope), c = colOf(S.scope), kt = k && U.topics.find((x) => x.id === k), sib = kt?.parent ? kidsOf(kt.parent).map((x) => "u:" + x.id) : null; CN.topics = new Set(sib && sib.length > 1 ? sib : k ? [S.scope] : c ? c.topics : []); CN.only = null; CN.res = null; CN.ai = ""; CN.cmp = null; CN.mode = "compare"; showPop("conn"); if (topicSel().length >= 2) runCompare(); },
     "new-note": (b) => { const t = b?.dataset.topic; noteModal(t ? { topic: t } : {}); },
     "note-about": (b) => { const n = raw.get(b.dataset.id); if (!n) return; noteModal({ title: "", text: `About [[${n.l}]]\n\n` }); },
@@ -2423,6 +2437,7 @@ export function mount(root, opts) {
     saveState = userStore.kind === "memory" ? "unsafe" : "saved"; chromeSave();
     if (wantScope && (wantScope.startsWith("u:") || wantScope.startsWith("c:")) && (colOf(wantScope) || topicInfo(wantScope))) { setScope(wantScope); if (startId && raw.has(startId)) setTimeout(() => select(startId), 700); }
     else { apply({ frame: false }); if (startId && raw.has(startId) && !S.selected && !wantScope) select(startId); }
+    { const pk = new URLSearchParams(location.search).get("pack"); if (pk && PACKS[pk]) setTimeout(() => addPack(pk), 600); }
     renderEmpty(); wake(1200);
     pushRestorePoint("Start of session"); refreshRP();
     if (cloudOn()) cloudSync(false); else if (cb.cloud) { CL.state = "off"; chromeSave(); }
