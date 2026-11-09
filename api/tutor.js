@@ -158,6 +158,24 @@ async function callGemini({key,model,system,user,signal,mode,max}){
   return safeResult(parseJsonText(raw),mode);
 }
 
+async function callAnthropic({key,model,system,user,signal,mode,max}){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    signal,
+    body:JSON.stringify({
+      model,
+      max_tokens:max||(mode==='ask'?900:500),
+      system:system+'\nReply with one JSON object only, no other text.',
+      messages:[{role:'user',content:user}]
+    })
+  });
+  if(!r.ok)throw new Error(await providerError('Claude',r,model));
+  const j=await r.json();
+  const raw=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('')||'{}';
+  return safeResult(parseJsonText(raw),mode);
+}
+
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
@@ -170,7 +188,7 @@ export default async function handler(req,res){
   const appToken=String(req.headers['x-app-access-token']||'').trim();
 
   let provider=requestedProvider,key='',model='',base='';
-  if(provider==='openai'||provider==='gemini'){
+  if(provider==='openai'||provider==='gemini'||provider==='anthropic'){
     if(!userKey)return res.status(401).json({error:'Personal API key required'});
     if(userKey.length<10||userKey.length>500)return res.status(400).json({error:'Invalid API key'});
     key=userKey;
@@ -191,6 +209,8 @@ export default async function handler(req,res){
   try{
     const result=provider==='gemini'
       ? await callGemini({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,max:p.max})
+      : provider==='anthropic'
+      ? await callAnthropic({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,max:p.max})
       : await callOpenAI({key,model,system:p.system,user:p.user,signal:controller.signal,mode:p.mode,max:p.max,base:provider==='server'?base:'https://api.openai.com/v1'});
     return res.status(200).json(result);
   }catch(err){

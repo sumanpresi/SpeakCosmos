@@ -19,7 +19,7 @@
     aiState:()=>{
       const pv=data.settings.aiProvider||'server',key=(localStorage.getItem('speakcosmos-provider-api-key')||sessionStorage.getItem('speakcosmos-provider-api-key'))||'',tok=sessionStorage.getItem('speakcosmos-ai-token')||'';
       const ok=pv==='server'?!!tok:!!key;
-      return {ok,title:ok?(pv==='server'?'App AI connected':(pv==='gemini'?'Google Gemini':'OpenAI')+(data.settings.aiModel?' · '+data.settings.aiModel:'')+'. Open settings.'):''};
+      return {ok,title:ok?(pv==='server'?'App AI connected':(pv==='gemini'?'Google Gemini':pv==='anthropic'?'Anthropic Claude':'OpenAI')+(data.settings.aiModel?' · '+data.settings.aiModel:'')+'. Open settings.'):''};
     },
     cloud:(()=>{
       const NAME='speakcosmos-topics.json';
